@@ -20,6 +20,12 @@ jobs:
         with:
           node-version: 18
 
+      # Eliminar node_modules y package-lock.json antes de la instalación
+      - name: Clean up dependencies
+        run: |
+          rm -rf node_modules
+          rm -f package-lock.json
+
       # Instalar dependencias
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
