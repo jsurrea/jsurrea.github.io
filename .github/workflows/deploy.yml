@@ -22,7 +22,7 @@ jobs:
 
       # Instalar dependencias
       - name: Install Dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       # Construir la aplicación React
       - name: Build React App
