@@ -1,0 +1,16 @@
+{
+  "social": [
+    {
+      "network": "linkedin",
+      "href": "https://www.linkedin.com/in/js-urrea/"
+    },
+    {
+      "network": "github",
+      "href": "https://github.com/jsurrea"
+    },
+    {
+      "network": "email",
+      "href": "mailto:js.urrea@uniandes.edu.co"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "projects": [
+    {
+      "image": "images/projects/mi-horario-uniandes.png",
+      "title": "Mi Horario Uniandes",
+      "bodyText": "- A web application that helps students at Universidad de los Andes to create their academic schedules.",
+      "links": [
+        {
+          "text": "GitHub",
+          "href": "https://github.com/Open-Source-Uniandes/Mi-Horario-Uniandes"
+        },
+        {
+          "text": "Live",
+          "href": "https://open-source-uniandes.github.io/Mi-Horario-Uniandes/"
+        }
+      ],
+      "tags": ["JavaScript", "Optimization"]
+    }
+  ]
+}
