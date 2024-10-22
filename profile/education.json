@@ -1,0 +1,22 @@
+{
+  "education": [
+    {
+      "title": "Jan 2019 - Oct 2024",
+      "cardTitle": "B.Eng, Industrial Engineering",
+      "cardSubtitle": "University of the Andes, Colombia",
+      "cardDetailedText": "CGPA - 4.7/5.0",
+      "icon": {
+        "src": "images/education/uniandes.svg"
+      }
+    },
+    {
+      "title": "Jan 2019 - Apr 2025",
+      "cardTitle": "B.Eng, Systems and Computing Engineering",
+      "cardSubtitle": "University of the Andes, Colombia",
+      "cardDetailedText": "CGPA - 4.7/5.0",
+      "icon": {
+        "src": "images/education/uniandes.svg"
+      }
+    }
+  ]
+}
