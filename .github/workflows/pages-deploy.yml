@@ -35,6 +35,17 @@ jobs:
           # If using the 'assets' git submodule from Chirpy Starter, uncomment above
           # (See: https://github.com/cotes2020/chirpy-starter/tree/main/assets)
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4.2.0
+        with:
+          node-version: '22.x' # Use Node.js 22.x LTS version
+
+      - name: Install Dependencies (npm)
+        run: npm install
+  
+      - name: Build assets
+        run: npm run build # Run the build process for assets
+
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v4

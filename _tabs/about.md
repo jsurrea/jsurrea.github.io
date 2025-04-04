@@ -3,6 +3,7 @@ icon: fas fa-info-circle
 order: 4
 title: I'm Juan Sebastian Urrea, it's nice to meet you! 🙌
 toc: true
+layout: page
 ---
 
 > This page is under construction 🏗️
