@@ -1,0 +1,8 @@
+{
+  "name": "DAIMO — INVIAS Dashboard",
+  "description": "Government dashboard for bridge intervention analysis for Colombia's National Road Institute (INVIAS).",
+  "tags": ["Python", "Dash", "NetworkX", "Plotly", "Government"],
+  "category": "data",
+  "featured": true,
+  "year": 2023
+}

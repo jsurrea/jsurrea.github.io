@@ -1,0 +1,9 @@
+{
+  "name": "Mi Horario Uniandes",
+  "description": "Schedule builder tool for Universidad de los Andes students. Received 8,000+ visits in the first 2 weeks and earned official university endorsement.",
+  "githubRepo": "jsurrea/Mi-Horario-Uniandes",
+  "tags": ["React", "Node.js", "GitHub API", "Universidad de los Andes"],
+  "category": "open-source",
+  "featured": true,
+  "year": 2022
+}

@@ -1,0 +1,15 @@
+{
+  "company": "Caseware International",
+  "role": "Software Developer",
+  "startDate": "2024-01-01",
+  "endDate": "2025-08-01",
+  "url": "https://caseware.com",
+  "description": "Developed enterprise audit and financial reporting software used by accounting firms worldwide.",
+  "highlights": [
+    "Developed and maintained enterprise financial reporting modules used by thousands of accounting firms",
+    "Improved frontend performance with React + ag-grid for large dataset rendering",
+    "Collaborated in agile teams delivering quarterly product releases"
+  ],
+  "stack": ["TypeScript", "React", "ag-grid", "Nest.js", "SQL Server", "GraphQL", "Auth0"],
+  "type": "full-time"
+}

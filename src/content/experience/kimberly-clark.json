@@ -1,0 +1,15 @@
+{
+  "company": "Kimberly-Clark Corporation",
+  "role": "Data Scientist",
+  "startDate": "2022-07-01",
+  "endDate": "2023-01-01",
+  "url": "https://kimberly-clark.com",
+  "description": "Applied data science and machine learning to improve manufacturing and supply chain operations.",
+  "highlights": [
+    "Built predictive models to optimize supply chain operations across Latin America",
+    "Developed ETL pipelines processing millions of records for business intelligence",
+    "Delivered Power BI dashboards enabling data-driven decision making"
+  ],
+  "stack": ["Python", "pandas", "scikit-learn", "Power BI", "SQL", "ETL", "Azure"],
+  "type": "internship"
+}

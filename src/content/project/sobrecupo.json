@@ -1,0 +1,8 @@
+{
+  "name": "Sobrecupo",
+  "description": "Real-time classroom availability finder for university students. Deployed institutionally at Universidad de los Andes.",
+  "tags": ["Flutter", "Nest.js", "Real-time", "Mobile"],
+  "category": "mobile",
+  "featured": true,
+  "year": 2023
+}

@@ -1,0 +1,10 @@
+{
+  "name": "ANTARES Naval Radar Simulator",
+  "description": "Software-based naval radar operations simulator. Published at IEEE ICMT 2025. Validated by the Colombian Navy.",
+  "githubRepo": "jsurrea/ANTARES",
+  "liveUrl": "https://thesoftwaredesignlab.github.io/ANTARES",
+  "tags": ["Rust", "TCP", "GUI", "Simulation", "IEEE"],
+  "category": "research",
+  "featured": true,
+  "year": 2025
+}

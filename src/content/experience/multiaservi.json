@@ -1,0 +1,14 @@
+{
+  "company": "Multiaservi Ltda.",
+  "role": "Application Developer",
+  "startDate": "2024-12-01",
+  "endDate": "2025-06-01",
+  "url": "https://multiaservi.com",
+  "description": "Developed custom business applications for Colombian SMEs.",
+  "highlights": [
+    "Built custom mobile and web applications for internal business operations",
+    "Delivered end-to-end solutions from requirements gathering to deployment"
+  ],
+  "stack": ["Flutter", "Dart", "Firebase", "Node.js"],
+  "type": "freelance"
+}
