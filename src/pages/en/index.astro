@@ -1041,9 +1041,4 @@ const featuredProjects = projects.filter((p) => p.data.featured);
   document.querySelectorAll('.stat-value').forEach((el) => observer.observe(el));
   document.querySelectorAll('.timeline-item').forEach((el) => observer.observe(el));
 
-  // Cursor glow effect
-  document.addEventListener('mousemove', (e: MouseEvent) => {
-    document.documentElement.style.setProperty('--cursor-x', `${e.clientX}px`);
-    document.documentElement.style.setProperty('--cursor-y', `${e.clientY}px`);
-  });
 </script>
