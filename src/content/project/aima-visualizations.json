@@ -1,0 +1,11 @@
+{
+  "name": "AIMA Visualizations",
+  "description": "Collection of interactive, browser-based visualizations for every major topic in the AI textbook by Russell and Norvig (4th edition). Covers search algorithms, constraint satisfaction, Bayesian networks, reinforcement learning, and more — making abstract concepts tangible for learners.",
+  "githubRepo": "jsurrea/aima-visualizations",
+  "liveUrl": "https://jsurrea.github.io/aima-visualizations",
+  "image": "https://opengraph.githubassets.com/1/jsurrea/aima-visualizations",
+  "tags": ["TypeScript", "Visualization", "AI", "Education"],
+  "category": "open-source",
+  "featured": true,
+  "year": 2024
+}

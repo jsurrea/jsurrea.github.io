@@ -1,6 +1,6 @@
 {
-  "name": "Sobrecupo",
-  "description": "Real-time classroom availability finder for university students. Deployed institutionally at Universidad de los Andes.",
+  "name": "Sobrecupo — Classroom Availability App",
+  "description": "Real-time classroom availability finder for university students at Universidad de los Andes. The app polls live seat data, surfaces open spots in seconds, and was deployed institutionally so students can register in last-minute open seats before they disappear.",
   "tags": ["Flutter", "Nest.js", "Real-time", "Mobile"],
   "category": "mobile",
   "featured": true,

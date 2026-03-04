@@ -1,0 +1,11 @@
+{
+  "name": "Showcase Chirpy Easy Docs",
+  "description": "Developer tool for creating beautiful, searchable documentation sites hosted on GitHub Pages — written entirely in Markdown. Provides automated navigation, syntax highlighting, and responsive design with zero configuration, lowering the barrier for projects to have professional docs.",
+  "githubRepo": "jsurrea/showcase-chirpy-easy-docs",
+  "liveUrl": "https://jsurrea.github.io/showcase-chirpy-easy-docs",
+  "image": "https://opengraph.githubassets.com/1/jsurrea/showcase-chirpy-easy-docs",
+  "tags": ["TypeScript", "Documentation", "GitHub Pages", "Markdown"],
+  "category": "tools",
+  "featured": false,
+  "year": 2024
+}

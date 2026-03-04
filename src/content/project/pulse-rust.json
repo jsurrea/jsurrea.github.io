@@ -1,0 +1,10 @@
+{
+  "name": "Pulse Algorithm (Rust)",
+  "description": "High-performance Rust implementation of the Pulse algorithm for solving the Constrained Shortest Path Problem (CSPP). Used in vehicle routing and logistics optimization, the Pulse algorithm efficiently prunes the search space via bound dominance, dramatically reducing computation time.",
+  "githubRepo": "jsurrea/pulse_rust",
+  "image": "https://opengraph.githubassets.com/1/jsurrea/pulse_rust",
+  "tags": ["Rust", "Graph Algorithms", "Optimization", "Operations Research"],
+  "category": "tools",
+  "featured": false,
+  "year": 2024
+}

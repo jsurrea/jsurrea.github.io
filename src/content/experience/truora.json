@@ -3,11 +3,12 @@
   "role": "Software Engineer",
   "startDate": "2025-08-01",
   "url": "https://truora.com",
-  "description": "Full-stack software engineering at a Y Combinator W19-backed identity verification and trust platform for Latin America.",
+  "description": "Full-stack software engineering at a Y Combinator W19-backed identity verification and digital trust platform serving millions of users across Latin America.",
   "highlights": [
-    "Built scalable microservices on AWS (Lambda, EventBridge, API Gateway, Secrets Manager, RDS, S3)",
-    "Contributed to identity verification pipelines serving millions of users across LATAM",
-    "Improved system reliability and observability using New Relic monitoring"
+    "Built and maintained scalable microservices on AWS (Lambda, EventBridge, API Gateway, Secrets Manager, RDS, S3) handling millions of identity verification requests",
+    "Contributed to background-check and identity pipelines that power onboarding for banks, fintechs, and gig-economy platforms across LATAM",
+    "Improved system reliability, latency, and observability using New Relic dashboards and structured logging",
+    "Collaborated in cross-functional squads delivering features end-to-end from design to production"
   ],
   "stack": ["TypeScript", "Node.js", "AWS Lambda", "PostgreSQL", "GraphQL", "Docker", "New Relic"],
   "type": "full-time"

@@ -1,8 +1,10 @@
 {
-  "name": "LatamGPT Data Pipeline",
-  "description": "Large-scale data pipeline for training 50B-parameter LLMs on Latin American content. Covers 33+ institutions and 12 countries.",
+  "name": "LatamGPT — LLM Training Pipeline",
+  "description": "Large-scale ETL pipeline for collecting and preprocessing Spanish-language text to train 50-billion-parameter LLMs for Latin America. Covers 33+ institutions and 12 countries, aggregating legal, academic, and news content with deduplication and quality filters.",
+  "githubRepo": "jsurrea/LLM-Latino",
+  "image": "https://opengraph.githubassets.com/1/jsurrea/LLM-Latino",
   "tags": ["Python", "Apache Tika", "GCP", "NLP", "LLM"],
   "category": "ml",
-  "featured": false,
+  "featured": true,
   "year": 2024
 }

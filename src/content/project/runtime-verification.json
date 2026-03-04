@@ -1,0 +1,10 @@
+{
+  "name": "Runtime Verification Research (Cornell SURF)",
+  "description": "Empirical study of inline test co-evolution across 30+ open-source Java projects, conducted during a Summer Undergraduate Research Fellowship at Cornell's Software Engineering Lab. Analyzes how inline assertions and tests evolve alongside production code over project histories.",
+  "githubRepo": "jsurrea/Runtime-Verification",
+  "image": "https://opengraph.githubassets.com/1/jsurrea/Runtime-Verification",
+  "tags": ["Java", "Research", "Software Engineering", "Cornell"],
+  "category": "research",
+  "featured": false,
+  "year": 2023
+}
