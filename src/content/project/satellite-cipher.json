@@ -1,0 +1,10 @@
+{
+  "name": "Satellite Cipher — Embedded Image Encryption",
+  "description": "Lightweight satellite image encryption system designed for resource-constrained embedded hardware. Implements custom cipher algorithms optimized for low-power devices to secure imagery captured by small satellites. Winner of the Codefest Ad Astra 2024 national hackathon.",
+  "githubRepo": "jsurrea/Satellite-Cipher",
+  "image": "https://opengraph.githubassets.com/1/jsurrea/Satellite-Cipher",
+  "tags": ["Embedded Systems", "Cryptography", "Satellite", "Hackathon"],
+  "category": "research",
+  "featured": true,
+  "year": 2024
+}

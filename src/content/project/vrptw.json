@@ -1,0 +1,11 @@
+{
+  "name": "VRPTW — Vehicle Routing Visualization",
+  "description": "Interactive visualization of the Vehicle Routing Problem with Time Windows (VRPTW) using Plotly. Formulates the combinatorial optimization problem as an integer linear program solved with GurobiPy, then renders routes and time windows in a rich web interface for analysis.",
+  "githubRepo": "jsurrea/VRPTW",
+  "liveUrl": "https://jsurrea.github.io/VRPTW",
+  "image": "https://opengraph.githubassets.com/1/jsurrea/VRPTW",
+  "tags": ["Python", "Gurobi", "Optimization", "Plotly"],
+  "category": "data",
+  "featured": false,
+  "year": 2023
+}

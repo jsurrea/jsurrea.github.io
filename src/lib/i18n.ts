@@ -1,13 +1,10 @@
 import { en } from '../i18n/en';
-import { es } from '../i18n/es';
 
-export type Locale = 'en' | 'es';
+export type Locale = 'en';
 
-const translations = { en, es } as const;
+const translations = { en } as const;
 
-export function getLangFromUrl(url: URL): Locale {
-  const [, lang] = url.pathname.split('/');
-  if (lang === 'en' || lang === 'es') return lang;
+export function getLangFromUrl(_url: URL): Locale {
   return 'en';
 }
 
@@ -31,6 +28,6 @@ function resolve(
 export function useTranslations(lang: Locale) {
   return function t(key: string): string {
     const keys = key.split('.');
-    return resolve(translations[lang], keys) ?? resolve(translations['en'], keys) ?? key;
+    return resolve(translations[lang], keys) ?? key;
   };
 }

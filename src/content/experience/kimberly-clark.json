@@ -4,11 +4,12 @@
   "startDate": "2022-07-01",
   "endDate": "2023-01-01",
   "url": "https://kimberly-clark.com",
-  "description": "Applied data science and machine learning to improve manufacturing and supply chain operations.",
+  "description": "Applied machine learning and data science to manufacturing and supply-chain operations at one of the world's largest consumer goods companies.",
   "highlights": [
-    "Built predictive models to optimize supply chain operations across Latin America",
-    "Developed ETL pipelines processing millions of records for business intelligence",
-    "Delivered Power BI dashboards enabling data-driven decision making"
+    "Built predictive ML models to forecast demand and optimize supply chain operations across Latin America, reducing stock-out incidents",
+    "Designed and deployed ETL pipelines processing millions of records to feed business-intelligence dashboards",
+    "Delivered interactive Power BI dashboards that enabled data-driven decision-making for supply chain and operations managers",
+    "Worked with Azure cloud services and cross-functional stakeholders to productionize models and reporting workflows"
   ],
   "stack": ["Python", "pandas", "scikit-learn", "Power BI", "SQL", "ETL", "Azure"],
   "type": "internship"

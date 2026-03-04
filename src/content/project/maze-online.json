@@ -1,0 +1,11 @@
+{
+  "name": "Maze Online",
+  "description": "Browser-based maze challenge game with multiple levels, retro aesthetics, and a competitive timer. Players navigate procedurally designed mazes, avoid obstacles, and race for their best completion time. Built entirely with vanilla JavaScript and CSS animations.",
+  "githubRepo": "jsurrea/Maze-Online",
+  "liveUrl": "https://jsurrea.github.io/Maze-Online",
+  "image": "https://opengraph.githubassets.com/1/jsurrea/Maze-Online",
+  "tags": ["JavaScript", "CSS", "Game", "Browser"],
+  "category": "game",
+  "featured": true,
+  "year": 2022
+}

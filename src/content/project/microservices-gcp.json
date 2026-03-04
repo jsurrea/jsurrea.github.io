@@ -1,0 +1,10 @@
+{
+  "name": "Cloud-Native Microservices on GCP",
+  "description": "Event-driven microservices architecture on Google Cloud Platform for a luggage-broker backend. Implements CQRS with Cloud Run services, Pub/Sub messaging, Cloud SQL, and a CI/CD pipeline using GitHub Actions — demonstrating production-grade cloud-native patterns.",
+  "githubRepo": "jsurrea/MISW4301-Cloud-Native-Dev",
+  "image": "https://opengraph.githubassets.com/1/jsurrea/MISW4301-Cloud-Native-Dev",
+  "tags": ["Python", "GCP", "Cloud Run", "Microservices", "Pub/Sub"],
+  "category": "web",
+  "featured": false,
+  "year": 2024
+}

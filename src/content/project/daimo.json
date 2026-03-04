@@ -1,6 +1,8 @@
 {
-  "name": "DAIMO — INVIAS Dashboard",
-  "description": "Government dashboard for bridge intervention analysis for Colombia's National Road Institute (INVIAS).",
+  "name": "DAIMO — INVIAS Bridge Dashboard",
+  "description": "Interactive dashboard for Colombia's National Road Institute (INVIAS) to analyze bridge intervention priorities across the national road network. Models the graph of road segments and simulates connectivity impact of bridge closures using network analysis.",
+  "githubRepo": "jsurrea/DAIMO",
+  "image": "https://opengraph.githubassets.com/1/jsurrea/DAIMO",
   "tags": ["Python", "Dash", "NetworkX", "Plotly", "Government"],
   "category": "data",
   "featured": true,

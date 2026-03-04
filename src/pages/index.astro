@@ -1,5 +1,1102 @@
 ---
-import { getLangFromUrl } from '../lib/i18n';
-const lang = getLangFromUrl(Astro.url);
-return Astro.redirect(`/${lang}/`);
+import BaseLayout from '../layouts/Base.astro';
+import { useTranslations } from '../lib/i18n';
+import { getCollection } from 'astro:content';
+import { sortByDate, formatDate, calculateDuration } from '../lib/utils';
+
+const t = useTranslations('en');
+const experiences = sortByDate(await getCollection('experience'));
+const projects = await getCollection('project');
+const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
 ---
+
+<BaseLayout lang="en" title="Juan Sebastián Urrea López — Software Engineer">
+  <main id="main-content">
+    <!-- Navigation -->
+    <nav class="nav" aria-label="Main navigation">
+      <div class="nav-inner">
+        <a href="/" class="nav-logo">jsurrea</a>
+        <div class="nav-links">
+          <a href="#experience">{t('experience.title')}</a>
+          <a href="#education">{t('education.title')}</a>
+          <a href="#projects">{t('projects.title')}</a>
+          <a href="#skills">{t('skills.title')}</a>
+          <a href="#publications">{t('publications.title')}</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" aria-label="Introduction">
+      <div class="hero-inner">
+        <div class="hero-text">
+          <p class="hero-greeting">{t('hero.greeting')}</p>
+          <h1 class="hero-name">Juan Sebastián<br />Urrea López</h1>
+          <div class="hero-roles" aria-live="polite">
+            <span class="typewriter" id="typewriter">Software Engineer</span>
+          </div>
+          <p class="hero-description">{t('hero.description')}</p>
+          <div class="hero-ctas">
+            <a href="#projects" class="btn btn-primary">{t('hero.viewWork')}</a>
+            <a href="/cv.pdf" class="btn btn-secondary" download>{t('hero.downloadCV')}</a>
+          </div>
+          <div class="hero-social">
+            <a href="https://github.com/jsurrea" target="_blank" rel="noopener noreferrer" aria-label="GitHub">GitHub</a>
+            <a href="https://www.linkedin.com/in/js-urrea/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">LinkedIn</a>
+            <a href="mailto:jurrea5518@gmail.com" aria-label="Email">Email</a>
+          </div>
+        </div>
+        <div class="hero-image">
+          <img
+            src="https://github.com/jsurrea.png"
+            alt="Juan Sebastián Urrea López"
+            width="300"
+            height="300"
+            loading="eager"
+          />
+        </div>
+      </div>
+    </section>
+
+    <!-- Highlights Section -->
+    <section class="highlights" aria-label="Career highlights">
+      <div class="container">
+        <h2>{t('highlights.title')}</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-value" data-target="4.69">0</span>
+            <span class="stat-label">GPA / 5.0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" data-target="100000" data-suffix="+">0</span>
+            <span class="stat-label">{t('highlights.usersImpacted')}</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" data-target="8000" data-suffix="+">0</span>
+            <span class="stat-label">{t('highlights.studentsServed')}</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" data-target="2">0</span>
+            <span class="stat-label">{t('highlights.publications')}</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" data-target="6" data-suffix="+">0</span>
+            <span class="stat-label">{t('highlights.hackathons')}</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" data-target="9" data-suffix="+">0</span>
+            <span class="stat-label">{t('highlights.certifications')}</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" data-target="4" data-suffix="+">0</span>
+            <span class="stat-label">{t('highlights.experience')}</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" data-prefix="Top " data-target="11">0</span>
+            <span class="stat-label">Nationally (Saber Pro)</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Experience Section -->
+    <section id="experience" class="section" aria-label="Work experience">
+      <div class="container">
+        <h2>{t('experience.title')}</h2>
+        <div class="timeline">
+          {experiences.map((exp) => (
+            <article class="timeline-item" key={exp.id}>
+              <div class="timeline-dot" aria-hidden="true"></div>
+              <div class="timeline-content">
+                <div class="timeline-header">
+                  <h3>{exp.data.role}</h3>
+                  <a href={exp.data.url} target="_blank" rel="noopener noreferrer" class="company-name">
+                    {exp.data.company}
+                  </a>
+                </div>
+                <div class="timeline-meta">
+                  <span class="badge badge-type">{exp.data.type}</span>
+                  <time datetime={exp.data.startDate}>
+                    {formatDate(exp.data.startDate, 'en')} — {exp.data.endDate ? formatDate(exp.data.endDate, 'en') : t('experience.present')}
+                  </time>
+                  <span class="duration">({calculateDuration(exp.data.startDate, exp.data.endDate)})</span>
+                </div>
+                <p>{exp.data.description}</p>
+                <ul class="highlights-list">
+                  {exp.data.highlights.map((h: string) => (
+                    <li>{h}</li>
+                  ))}
+                </ul>
+                <div class="stack-tags">
+                  {exp.data.stack.map((s: string) => (
+                    <span class="tag">{s}</span>
+                  ))}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Education Section -->
+    <section id="education" class="section" aria-label="Education">
+      <div class="container">
+        <h2>{t('education.title')}</h2>
+        <div class="timeline">
+          <article class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <h3>Master's in Systems &amp; Computing Engineering</h3>
+              <p class="company-name">Universidad de los Andes</p>
+              <time datetime="2026-01">January 2026 — Present</time>
+              <p>Focus: Reinforcement Learning, Advanced Computer Vision, Graduate-level ML</p>
+            </div>
+          </article>
+          <article class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <h3>B.Sc. Systems &amp; Computing Engineering</h3>
+              <p class="company-name">Universidad de los Andes</p>
+              <time datetime="2019">2019 — 2025</time>
+              <p>🏅 {t('education.magna')} · GPA 4.69/5.0 · {t('education.scholarship')}</p>
+            </div>
+          </article>
+          <article class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <h3>B.Sc. Industrial Engineering</h3>
+              <p class="company-name">Universidad de los Andes</p>
+              <time datetime="2019">2019 — 2024</time>
+              <p>🏅 {t('education.magna')} · GPA 4.7/5.0</p>
+            </div>
+          </article>
+          <article class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <h3>Minor in Biomedical Engineering (AI &amp; Computer Vision)</h3>
+              <p class="company-name">Universidad de los Andes</p>
+              <time datetime="2019">2019 — 2024</time>
+              <p>Research under Prof. Pablo Arbeláez, Biomedical Computer Vision Research Group</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section id="projects" class="section" aria-label="Projects">
+      <div class="container">
+        <h2>{t('projects.title')}</h2>
+        <div class="filter-bar" role="group" aria-label="Filter projects by category">
+          <button class="filter-btn active" data-filter="all">{t('projects.filterAll')}</button>
+          <button class="filter-btn" data-filter="research">Research</button>
+          <button class="filter-btn" data-filter="ml">ML / AI</button>
+          <button class="filter-btn" data-filter="web">Web</button>
+          <button class="filter-btn" data-filter="game">Games</button>
+          <button class="filter-btn" data-filter="open-source">Open Source</button>
+          <button class="filter-btn" data-filter="data">Data</button>
+          <button class="filter-btn" data-filter="tools">Tools</button>
+          <button class="filter-btn" data-filter="mobile">Mobile</button>
+        </div>
+        <div class="projects-grid">
+          {sortedProjects.map((proj) => (
+            <article class="project-card" data-category={proj.data.category} key={proj.id}>
+              {proj.data.image && (
+                <div class="project-image">
+                  <img src={proj.data.image} alt={proj.data.name} loading="lazy" />
+                </div>
+              )}
+              <div class="project-content">
+                <div class="project-top">
+                  <h3>{proj.data.name}</h3>
+                  <span class="project-year">{proj.data.year}</span>
+                </div>
+                <p>{proj.data.description}</p>
+                <div class="project-tags">
+                  {proj.data.tags.map((tag: string) => (
+                    <span class="tag">{tag}</span>
+                  ))}
+                </div>
+                <div class="project-links">
+                  {proj.data.githubRepo && (
+                    <a
+                      href={`https://github.com/${proj.data.githubRepo}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t('projects.viewCode')}
+                    </a>
+                  )}
+                  {proj.data.liveUrl && (
+                    <a href={proj.data.liveUrl} target="_blank" rel="noopener noreferrer">
+                      {t('projects.liveDemo')}
+                    </a>
+                  )}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Publications Section -->
+    <section id="publications" class="section" aria-label="Publications">
+      <div class="container">
+        <h2>{t('publications.title')}</h2>
+        <div class="publications-list">
+          <article class="pub-card">
+            <span class="ieee-badge">IEEE</span>
+            <h3>ANTARES: A Software-Based Tool for Simulating Naval Radar Operations</h3>
+            <p class="pub-venue">IEEE ICMT 2025</p>
+            <p class="pub-authors">J. S. Urrea-Lopez, C. Barreto-Reyes, M. Linares-Vásquez</p>
+            <div class="pub-links">
+              <a href="https://thesoftwaredesignlab.github.io/ANTARES" target="_blank" rel="noopener noreferrer">
+                View Publication
+              </a>
+              <a href="https://github.com/jsurrea/ANTARES" target="_blank" rel="noopener noreferrer">
+                GitHub
+              </a>
+            </div>
+          </article>
+          <article class="pub-card">
+            <span class="ieee-badge">IEEE</span>
+            <h3>Real-Time Face Mask Detection with SSD</h3>
+            <p class="pub-venue">IEEE CI-IB&amp;BI 2021</p>
+            <p class="pub-authors">E. S. Lozano Roa, J. S. Urrea López, I. D. Chacón Silva</p>
+            <div class="pub-links">
+              <a href="https://github.com/jsurrea/face-mask-detection-SSD" target="_blank" rel="noopener noreferrer">
+                View Code
+              </a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Skills Section -->
+    <section id="skills" class="section" aria-label="Skills">
+      <div class="container">
+        <h2>{t('skills.title')}</h2>
+        <div class="skills-grid">
+          <div class="skill-group">
+            <h3>{t('skills.languages')}</h3>
+            <div class="skill-tags">
+              {['TypeScript', 'Python', 'Go', 'Java', 'Rust', 'Dart', 'SQL', 'C', 'Assembly'].map((s) => (
+                <span class="tag tag-lang">{s}</span>
+              ))}
+            </div>
+          </div>
+          <div class="skill-group">
+            <h3>{t('skills.mlAi')}</h3>
+            <div class="skill-tags">
+              {['PyTorch', 'TensorFlow', 'CNNs', 'Transformers', 'NeRF', 'Diffusion Models', 'RL', 'SSD', 'Object Detection', 'LLM Fine-tuning'].map((s) => (
+                <span class="tag tag-ml">{s}</span>
+              ))}
+            </div>
+          </div>
+          <div class="skill-group">
+            <h3>{t('skills.cloudDevops')}</h3>
+            <div class="skill-tags">
+              {['AWS Lambda', 'EventBridge', 'API Gateway', 'GCP', 'Cloud Run', 'Docker', 'GitHub Actions', 'New Relic'].map((s) => (
+                <span class="tag tag-cloud">{s}</span>
+              ))}
+            </div>
+          </div>
+          <div class="skill-group">
+            <h3>{t('skills.frontend')}</h3>
+            <div class="skill-tags">
+              {['Astro', 'React', 'Vue.js', 'Flutter', 'Tailwind CSS', 'ag-grid', 'Plotly'].map((s) => (
+                <span class="tag tag-fe">{s}</span>
+              ))}
+            </div>
+          </div>
+          <div class="skill-group">
+            <h3>{t('skills.backend')}</h3>
+            <div class="skill-tags">
+              {['Nest.js', 'Node.js', 'GraphQL', 'REST', 'Auth0', 'Django'].map((s) => (
+                <span class="tag tag-be">{s}</span>
+              ))}
+            </div>
+          </div>
+          <div class="skill-group">
+            <h3>{t('skills.databases')}</h3>
+            <div class="skill-tags">
+              {['PostgreSQL', 'Redis', 'SQL Server', 'Firebase', 'DynamoDB'].map((s) => (
+                <span class="tag tag-db">{s}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Awards Section -->
+    <section id="awards" class="section" aria-label="Awards and honors">
+      <div class="container">
+        <h2>{t('awards.title')}</h2>
+        <div class="awards-grid">
+          <div class="award-card">
+            <span class="award-icon">🥇</span>
+            <div>
+              <h3>11th Best National Score — Saber Pro</h3>
+              <p>December 2024 · ~200,000 test takers</p>
+            </div>
+          </div>
+          <div class="award-card">
+            <span class="award-icon">🎓</span>
+            <div>
+              <h3>Magna Cum Laude × 2</h3>
+              <p>Systems Engineering (4.69) + Industrial Engineering (4.7)</p>
+            </div>
+          </div>
+          <div class="award-card">
+            <span class="award-icon">🏅</span>
+            <div>
+              <h3>Full-Tuition Merit Scholarship</h3>
+              <p>Universidad de los Andes · 2019–2025</p>
+            </div>
+          </div>
+          <div class="award-card">
+            <span class="award-icon">🏆</span>
+            <div>
+              <h3>3× Codefest Ad Astra Winner</h3>
+              <p>2022, 2023, 2024 (consecutive wins)</p>
+            </div>
+          </div>
+          <div class="award-card">
+            <span class="award-icon">🎮</span>
+            <div>
+              <h3>EA GameJam 2026 — Best Game Experience</h3>
+              <p>Electronic Arts · NEXARI project</p>
+            </div>
+          </div>
+          <div class="award-card">
+            <span class="award-icon">🏆</span>
+            <div>
+              <h3>Extreme Programming Competition 2022</h3>
+              <p>1st Place</p>
+            </div>
+          </div>
+          <div class="award-card">
+            <span class="award-icon">🏆</span>
+            <div>
+              <h3>Sabana Hack 2022</h3>
+              <p>Winner</p>
+            </div>
+          </div>
+          <div class="award-card">
+            <span class="award-icon">🏆</span>
+            <div>
+              <h3>DataJam for Transparency</h3>
+              <p>Winner · Paquito anti-corruption tool</p>
+            </div>
+          </div>
+          <div class="award-card">
+            <span class="award-icon">🤝</span>
+            <div>
+              <h3>Ego4D Volunteer Contributor</h3>
+              <p>World's largest egocentric video dataset · Meta AI</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Certifications Section -->
+    <section id="certifications" class="section" aria-label="Certifications">
+      <div class="container">
+        <h2>{t('certifications.title')}</h2>
+        <div class="certs-grid">
+          {[
+            { title: 'Building LLM Applications with Prompt Engineering', issuer: 'NVIDIA DLI', year: 2025 },
+            { title: 'Building Transformer-Based NLP Applications', issuer: 'NVIDIA DLI', year: 2024 },
+            { title: 'Fundamentals of Deep Learning', issuer: 'NVIDIA DLI', year: 2024 },
+            { title: 'Deep Learning Specialization (5 courses)', issuer: 'DeepLearning.AI', year: 2020 },
+            { title: 'Applied Data Science with Python (5 courses)', issuer: 'University of Michigan', year: 2021 },
+            { title: 'Data Science for All Colombia 5.0 — Honors', issuer: 'Correlation One', year: 2021 },
+            { title: 'Web Applications Development', issuer: 'MinTIC Colombia', year: 2022 },
+          ].map((cert) => (
+            <div class="cert-card">
+              <span class="cert-issuer">{cert.issuer}</span>
+              <h3>{cert.title}</h3>
+              <span class="cert-year">{cert.year}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <div class="footer-inner">
+        <div class="footer-links">
+          <a href="https://github.com/jsurrea" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href="https://www.linkedin.com/in/js-urrea/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+          <a href="mailto:jurrea5518@gmail.com">jurrea5518@gmail.com</a>
+        </div>
+        <p>{t('footer.madeWith')} ❤️ {t('footer.by')}</p>
+        <p>Bogotá, Colombia 🇨🇴</p>
+      </div>
+    </footer>
+  </main>
+</BaseLayout>
+
+<style>
+  /* Navigation */
+  .nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(10, 10, 15, 0.9);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 0;
+  }
+  .nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .nav-logo {
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--accent-primary);
+    text-decoration: none;
+  }
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+  }
+  .nav-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover {
+    color: var(--text-primary);
+  }
+
+  /* Hero */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding-top: 80px;
+  }
+  .hero-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 4rem;
+    align-items: center;
+  }
+  .hero-greeting {
+    color: var(--accent-secondary);
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+  .hero-name {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 800;
+    line-height: 1.1;
+    background: linear-gradient(135deg, var(--text-primary), var(--accent-primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 1rem;
+  }
+  .hero-roles {
+    font-size: 1.3rem;
+    color: var(--accent-secondary);
+    margin-bottom: 1.5rem;
+    min-height: 2rem;
+  }
+  .typewriter::after {
+    content: '|';
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+  .hero-description {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    max-width: 540px;
+    margin-bottom: 2rem;
+    line-height: 1.7;
+  }
+  .hero-ctas {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+  }
+  .hero-social {
+    display: flex;
+    gap: 1.5rem;
+  }
+  .hero-social a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+  }
+  .hero-social a:hover { color: var(--accent-primary); }
+  .hero-image img {
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    border: 3px solid var(--accent-primary);
+    box-shadow: 0 0 40px var(--glow);
+    object-fit: cover;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-block;
+    padding: 0.75rem 1.75rem;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+  }
+  .btn-primary {
+    background: var(--accent-primary);
+    color: white;
+  }
+  .btn-primary:hover {
+    background: #6b59e6;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px var(--glow);
+  }
+  .btn-secondary {
+    border: 1px solid var(--accent-primary);
+    color: var(--accent-primary);
+    background: transparent;
+  }
+  .btn-secondary:hover {
+    background: var(--accent-primary);
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  /* Highlights */
+  .highlights {
+    padding: 5rem 0;
+    background: var(--bg-surface);
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+  .stat-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .stat-card:hover {
+    border-color: var(--accent-primary);
+    transform: translateY(-4px);
+  }
+  .stat-value {
+    display: block;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent-primary);
+  }
+  .stat-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Sections */
+  .section {
+    padding: 5rem 0;
+  }
+  .section:nth-child(even) {
+    background: var(--bg-surface);
+  }
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+  h2 {
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    font-weight: 800;
+    margin-bottom: 2.5rem;
+    position: relative;
+  }
+  h2::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 4px;
+    background: var(--accent-primary);
+    border-radius: 2px;
+    margin-top: 0.5rem;
+  }
+
+  /* Timeline */
+  .timeline {
+    position: relative;
+    padding-left: 2rem;
+    border-left: 2px solid var(--border);
+  }
+  .timeline-item {
+    position: relative;
+    padding: 0 0 2.5rem 2rem;
+    opacity: 0;
+    transform: translateX(-20px);
+    transition: opacity 0.5s, transform 0.5s;
+  }
+  .timeline-item.visible {
+    opacity: 1;
+    transform: none;
+  }
+  .timeline-dot {
+    position: absolute;
+    left: -2.45rem;
+    top: 0.25rem;
+    width: 14px;
+    height: 14px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    border: 2px solid var(--bg-base);
+    box-shadow: 0 0 10px var(--glow);
+  }
+  .timeline-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+  }
+  .timeline-header h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+  .company-name {
+    color: var(--accent-secondary);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .timeline-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+  }
+  .duration { color: var(--text-secondary); }
+  .highlights-list {
+    list-style: disc;
+    padding-left: 1.25rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin: 0.75rem 0;
+    line-height: 1.7;
+  }
+
+  /* Tags/Badges */
+  .badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .badge-type {
+    background: rgba(124, 106, 247, 0.15);
+    color: var(--accent-primary);
+    border: 1px solid var(--accent-primary);
+  }
+  .stack-tags, .project-tags, .skill-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+  .tag {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 99px;
+    font-size: 0.8rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+  .tag:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+  .tag-lang { border-color: rgba(124, 106, 247, 0.4); color: var(--accent-primary); }
+  .tag-ml { border-color: rgba(0, 212, 170, 0.4); color: var(--accent-secondary); }
+  .tag-cloud { border-color: rgba(245, 200, 66, 0.4); color: var(--accent-gold); }
+  .tag-fe { border-color: rgba(124, 106, 247, 0.4); color: var(--accent-primary); }
+  .tag-be { border-color: rgba(0, 212, 170, 0.4); color: var(--accent-secondary); }
+  .tag-db { border-color: rgba(245, 200, 66, 0.4); color: var(--accent-gold); }
+
+  /* Project filter */
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+  }
+  .filter-btn {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 0.35rem 1rem;
+    border-radius: 99px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .filter-btn:hover,
+  .filter-btn.active {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: white;
+  }
+
+  /* Projects */
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
+  .project-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s;
+    position: relative;
+  }
+  .project-card.hidden {
+    display: none;
+  }
+  .project-card:hover {
+    border-color: var(--accent-primary);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+  }
+  .project-image {
+    width: 100%;
+    aspect-ratio: 2/1;
+    overflow: hidden;
+    background: var(--bg-surface);
+  }
+  .project-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+  }
+  .project-card:hover .project-image img {
+    transform: scale(1.04);
+  }
+  .project-content {
+    padding: 1.5rem;
+  }
+  .project-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .project-content h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+  .project-year {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    padding-top: 0.15rem;
+  }
+  .project-content p { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; }
+  .project-links {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  .project-links a {
+    color: var(--accent-primary);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid var(--accent-primary);
+    padding: 0.3rem 0.75rem;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .project-links a:hover { background: var(--accent-primary); color: white; }
+
+  /* Publications */
+  .publications-list { display: flex; flex-direction: column; gap: 1.5rem; }
+  .pub-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+  .ieee-badge {
+    display: inline-block;
+    background: #00629B;
+    color: white;
+    padding: 0.15rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+  .pub-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .pub-venue { color: var(--accent-secondary); font-size: 0.9rem; font-weight: 600; }
+  .pub-authors { color: var(--text-secondary); font-size: 0.85rem; margin: 0.25rem 0 0.75rem; }
+  .pub-links { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .pub-links a { color: var(--accent-primary); text-decoration: none; font-size: 0.85rem; font-weight: 600; }
+  .pub-links a:hover { text-decoration: underline; }
+
+  /* Skills */
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+  .skill-group {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+  }
+  .skill-group h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 0.75rem; }
+
+  /* Awards */
+  .awards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+  .award-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    transition: border-color 0.2s;
+  }
+  .award-card:hover { border-color: var(--accent-gold); }
+  .award-icon { font-size: 1.5rem; flex-shrink: 0; }
+  .award-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .award-card p { font-size: 0.8rem; color: var(--text-secondary); }
+
+  /* Certifications */
+  .certs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+  .cert-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: border-color 0.2s;
+  }
+  .cert-card:hover { border-color: var(--accent-secondary); }
+  .cert-issuer { display: block; font-size: 0.75rem; color: var(--accent-secondary); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem; }
+  .cert-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; }
+  .cert-year { font-size: 0.8rem; color: var(--text-secondary); }
+
+  /* Footer */
+  footer {
+    padding: 2.5rem 1.5rem;
+    border-top: 1px solid var(--border);
+    background: var(--bg-surface);
+  }
+  .footer-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: center;
+  }
+  .footer-links {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--accent-primary); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .hero-inner {
+      grid-template-columns: 1fr;
+      text-align: center;
+    }
+    .hero-image {
+      order: -1;
+      display: flex;
+      justify-content: center;
+    }
+    .hero-image img {
+      width: 200px;
+      height: 200px;
+    }
+    .hero-ctas, .hero-social {
+      justify-content: center;
+    }
+    .nav-links {
+      gap: 1rem;
+    }
+    .timeline {
+      padding-left: 1rem;
+    }
+    .timeline-item {
+      padding-left: 1.5rem;
+    }
+    .timeline-dot {
+      left: -1.45rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .nav-links a {
+      font-size: 0.8rem;
+    }
+    .nav-links {
+      gap: 0.75rem;
+    }
+  }
+</style>
+
+<script>
+  // Typewriter effect
+  const roles = ['Software Engineer', 'Computer Vision Researcher', 'Open Source Builder', 'ML Engineer', 'Full-Stack Developer'];
+  let roleIndex = 0;
+  let charIndex = 0;
+  let isDeleting = false;
+  const el = document.getElementById('typewriter');
+
+  function type() {
+    if (!el) return;
+    const current = roles[roleIndex] ?? '';
+    if (isDeleting) {
+      el.textContent = current.substring(0, charIndex - 1);
+      charIndex--;
+    } else {
+      el.textContent = current.substring(0, charIndex + 1);
+      charIndex++;
+    }
+    if (!isDeleting && charIndex === current.length) {
+      isDeleting = true;
+      setTimeout(type, 1800);
+      return;
+    }
+    if (isDeleting && charIndex === 0) {
+      isDeleting = false;
+      roleIndex = (roleIndex + 1) % roles.length;
+    }
+    setTimeout(type, isDeleting ? 50 : 100);
+  }
+  type();
+
+  // Animated counters
+  function animateCounter(el: Element) {
+    const target = parseFloat(el.getAttribute('data-target') ?? '0');
+    const suffix = el.getAttribute('data-suffix') ?? '';
+    const prefix = el.getAttribute('data-prefix') ?? '';
+    const duration = 1500;
+    const start = performance.now();
+    const isDecimal = target % 1 !== 0;
+
+    function update(now: number) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = target * eased;
+      el.textContent = prefix + (isDecimal ? current.toFixed(2) : Math.round(current).toString()) + suffix;
+      if (progress < 1) requestAnimationFrame(update);
+    }
+    requestAnimationFrame(update);
+  }
+
+  // Project filter
+  const filterButtons = document.querySelectorAll('.filter-btn');
+  const projectCards = document.querySelectorAll('.project-card');
+
+  filterButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      filterButtons.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const filter = btn.getAttribute('data-filter');
+      projectCards.forEach((card) => {
+        if (filter === 'all' || card.getAttribute('data-category') === filter) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    });
+  });
+
+  // Intersection Observer for counters and timeline
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const target = entry.target;
+          if (target.classList.contains('stat-value')) {
+            animateCounter(target);
+            observer.unobserve(target);
+          }
+          if (target.classList.contains('timeline-item')) {
+            target.classList.add('visible');
+          }
+        }
+      });
+    },
+    { threshold: 0.2 }
+  );
+
+  document.querySelectorAll('.stat-value').forEach((el) => observer.observe(el));
+  document.querySelectorAll('.timeline-item').forEach((el) => observer.observe(el));
+</script>
