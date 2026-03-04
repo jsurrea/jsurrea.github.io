@@ -1,0 +1,9 @@
+{
+  "name": "Face Mask Detection SSD",
+  "description": "Real-time 3-class face mask detection using SSD architecture. Achieved mAP 70.2%. Published at IEEE CI-IB&BI 2021.",
+  "githubRepo": "jsurrea/face-mask-detection-SSD",
+  "tags": ["PyTorch", "SSD", "Pascal VOC", "Computer Vision", "IEEE"],
+  "category": "ml",
+  "featured": true,
+  "year": 2021
+}

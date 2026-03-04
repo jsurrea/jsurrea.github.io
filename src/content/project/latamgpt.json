@@ -1,0 +1,8 @@
+{
+  "name": "LatamGPT Data Pipeline",
+  "description": "Large-scale data pipeline for training 50B-parameter LLMs on Latin American content. Covers 33+ institutions and 12 countries.",
+  "tags": ["Python", "Apache Tika", "GCP", "NLP", "LLM"],
+  "category": "ml",
+  "featured": false,
+  "year": 2024
+}

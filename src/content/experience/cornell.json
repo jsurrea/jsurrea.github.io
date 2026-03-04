@@ -1,0 +1,15 @@
+{
+  "company": "Cornell University, CS Dept.",
+  "role": "Research Engineer",
+  "startDate": "2023-06-01",
+  "endDate": "2023-08-01",
+  "url": "https://cs.cornell.edu",
+  "description": "Research in computer vision and machine learning under supervision of Cornell CS faculty.",
+  "highlights": [
+    "Developed computer vision algorithms for autonomous systems research",
+    "Contributed to research on large-scale video understanding",
+    "Collaborated with Ego4D dataset initiative (Meta AI)"
+  ],
+  "stack": ["Python", "PyTorch", "OpenCV", "NumPy", "CUDA"],
+  "type": "research"
+}
