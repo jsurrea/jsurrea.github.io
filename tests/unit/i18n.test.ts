@@ -14,9 +14,13 @@ describe('getLangFromUrl', () => {
 });
 
 describe('useTranslations', () => {
-  it('returns English translation for known key', () => {
+  it('returns English translation for nav experience', () => {
     const t = useTranslations('en');
-    expect(t('nav.home')).toBe('Home');
+    expect(t('nav.experience')).toBe('Experience');
+  });
+  it('returns English translation for nav projects', () => {
+    const t = useTranslations('en');
+    expect(t('nav.projects')).toBe('Projects');
   });
   it('returns key for completely unknown key', () => {
     const t = useTranslations('en');
@@ -26,33 +30,40 @@ describe('useTranslations', () => {
     const t = useTranslations('en');
     expect(t('nav.nonexistent')).toBe('nav.nonexistent');
   });
-  it('handles hero title key', () => {
+  it('handles hero viewWork key', () => {
     const t = useTranslations('en');
     expect(t('hero.viewWork')).toBe('View My Work');
+  });
+  it('handles hero downloadCV key', () => {
+    const t = useTranslations('en');
+    expect(t('hero.downloadCV')).toBe('Download CV');
   });
   it('returns experience present in English', () => {
     const t = useTranslations('en');
     expect(t('experience.present')).toBe('Present');
   });
-  it('returns key when value is not a string (array type)', () => {
+  it('returns projects viewCode in English', () => {
     const t = useTranslations('en');
-    // hero.roles is an array, not a string
-    expect(t('hero.roles')).toBe('hero.roles');
+    expect(t('projects.viewCode')).toBe('View Code');
   });
-  it('returns highlights title', () => {
+  it('returns projects liveDemo in English', () => {
     const t = useTranslations('en');
-    expect(t('highlights.title')).toBe('By the Numbers');
+    expect(t('projects.liveDemo')).toBe('Live Demo');
   });
-  it('returns education title', () => {
+  it('returns footer madeWith', () => {
     const t = useTranslations('en');
-    expect(t('education.title')).toBe('Education');
+    expect(t('footer.madeWith')).toBe('Made with');
   });
-  it('returns projects title', () => {
+  it('returns key when path does not exist (removed section)', () => {
     const t = useTranslations('en');
-    expect(t('projects.title')).toBe('Projects');
+    expect(t('highlights.title')).toBe('highlights.title');
   });
-  it('returns skills title', () => {
+  it('returns key when parent object does not exist', () => {
     const t = useTranslations('en');
-    expect(t('skills.title')).toBe('Skills');
+    expect(t('skills.title')).toBe('skills.title');
+  });
+  it('handles hero greeting key', () => {
+    const t = useTranslations('en');
+    expect(t('hero.greeting')).toBe("Hi, I'm");
   });
 });
