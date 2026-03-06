@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fetchGitHubRepos, fetchGitHubProfile } from '../../src/lib/github';
+import {
+  fetchGitHubRepos,
+  fetchGitHubProfile,
+  fetchGitHubReposEnriched,
+  fetchGitHubOrg,
+  getSocialPreviewUrl,
+  getGitHubPagesUrl,
+} from '../../src/lib/github';
 
 describe('fetchGitHubRepos', () => {
   beforeEach(() => {
@@ -124,5 +131,107 @@ describe('fetchGitHubProfile', () => {
       expect.any(String),
       expect.objectContaining({ headers: {} })
     );
+  });
+});
+
+describe('getSocialPreviewUrl', () => {
+  it('returns the correct opengraph URL', () => {
+    expect(getSocialPreviewUrl('jsurrea', 'my-repo')).toBe(
+      'https://opengraph.githubassets.com/1/jsurrea/my-repo'
+    );
+  });
+
+  it('works with different owners and repos', () => {
+    const url = getSocialPreviewUrl('someorg', 'another-project');
+    expect(url).toContain('someorg');
+    expect(url).toContain('another-project');
+  });
+});
+
+describe('getGitHubPagesUrl', () => {
+  it('returns the correct GitHub Pages URL', () => {
+    expect(getGitHubPagesUrl('jsurrea', 'my-project')).toBe(
+      'https://jsurrea.github.io/my-project/'
+    );
+  });
+
+  it('lowercases the owner', () => {
+    expect(getGitHubPagesUrl('JsUrrea', 'repo')).toBe(
+      'https://jsurrea.github.io/repo/'
+    );
+  });
+});
+
+describe('fetchGitHubReposEnriched', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn());
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete process.env['GITHUB_TOKEN'];
+  });
+
+  it('enriches repos with socialPreviewUrl and pagesUrl', async () => {
+    const mockRepos = [
+      {
+        id: 1,
+        name: 'cool-project',
+        full_name: 'jsurrea/cool-project',
+        description: 'A project',
+        html_url: 'https://github.com/jsurrea/cool-project',
+        homepage: null,
+        stargazers_count: 5,
+        forks_count: 1,
+        language: 'TypeScript',
+        topics: ['web'],
+        updated_at: '2024-01-01',
+        fork: false,
+        owner: { login: 'jsurrea', avatar_url: '' },
+      },
+    ];
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockRepos,
+    } as Response);
+    const result = await fetchGitHubReposEnriched();
+    expect(result).toHaveLength(1);
+    expect(result[0]?.socialPreviewUrl).toContain('cool-project');
+    expect(result[0]?.pagesUrl).toContain('cool-project');
+    expect(result[0]?.pagesUrl).toContain('jsurrea.github.io');
+  });
+});
+
+describe('fetchGitHubOrg', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn());
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete process.env['GITHUB_TOKEN'];
+  });
+
+  it('returns org data', async () => {
+    const mockOrg = {
+      login: 'Open-Source-Uniandes',
+      description: 'Student open source org',
+      avatar_url: 'https://avatars.githubusercontent.com/u/123',
+      html_url: 'https://github.com/Open-Source-Uniandes',
+      public_repos: 10,
+    };
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockOrg,
+    } as Response);
+    const result = await fetchGitHubOrg('Open-Source-Uniandes');
+    expect(result.login).toBe('Open-Source-Uniandes');
+    expect(result.public_repos).toBe(10);
+  });
+
+  it('throws on API error', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+    } as Response);
+    await expect(fetchGitHubOrg('nonexistent')).rejects.toThrow('GitHub API error: 404');
   });
 });

@@ -1,430 +1,609 @@
 ---
 import BaseLayout from '../layouts/Base.astro';
-import { useTranslations } from '../lib/i18n';
-import { getCollection } from 'astro:content';
-import { sortByDate, formatDate, calculateDuration } from '../lib/utils';
+import { load as yamlLoad } from 'js-yaml';
+import { fetchGitHubReposEnriched, fetchGitHubOrg } from '../lib/github';
+import type { Profile } from '../lib/profile';
 
-const t = useTranslations('en');
-const experiences = sortByDate(await getCollection('experience'));
-const projects = await getCollection('project');
-const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
+// Fetch and parse profile YAML at build time
+const PROFILE_URL = 'https://jsurrea.github.io/CV/profile.yaml';
+let profile: Profile;
+try {
+  const res = await fetch(PROFILE_URL);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  profile = yamlLoad(text) as Profile;
+} catch (e) {
+  console.warn('Failed to fetch profile YAML:', e);
+  profile = {
+    basics: {
+      name: 'Juan Sebastian Urrea Lopez',
+      label: 'Software Engineer & AI Researcher',
+      email: 'jurrea5518@gmail.com',
+      phone: '',
+      url: 'https://jsurrea.github.io/',
+      summary: '',
+      profiles: [],
+    },
+  };
+}
+
+const { basics, education, work, publications, volunteer, awards, certificates, skills } = profile;
+
+// Fetch GitHub repos
+let repos: Awaited<ReturnType<typeof fetchGitHubReposEnriched>> = [];
+try {
+  repos = await fetchGitHubReposEnriched();
+} catch (e) {
+  console.warn('Failed to fetch GitHub repos:', e);
+}
+
+// Fetch GitHub orgs
+const ORG_LOGINS = ['Open-Source-Uniandes', 'AI-Museum'];
+interface OrgData {
+  login: string;
+  description: string | null;
+  avatar_url: string;
+  html_url: string;
+  pagesUrl: string;
+}
+const orgs: OrgData[] = [];
+for (const login of ORG_LOGINS) {
+  try {
+    const org = await fetchGitHubOrg(login);
+    orgs.push({
+      login,
+      description: org.description,
+      avatar_url: org.avatar_url,
+      html_url: `https://github.com/${login}`,
+      pagesUrl: `https://${login.toLowerCase()}.github.io/`,
+    });
+  } catch (e) {
+    console.warn(`Failed to fetch org ${login}:`, e);
+  }
+}
+
+// Format date helpers
+function fmtYearMonth(dateStr?: string | null): string {
+  if (!dateStr) return '';
+  const iso = dateStr.match(/^\d{4}-\d{2}$/) ? dateStr + '-01' : dateStr;
+  const d = new Date(iso + 'T00:00:00');
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
+
+const GITHUB_USER = 'jsurrea';
+const roles = ['Software Engineer', 'AI Researcher', 'Open Source Builder', 'Computer Vision Engineer', 'Full-Stack Developer'];
+
+interface OrgMeta {
+  tagline: string;
+  description: string;
+  highlights: string[];
+}
+
+const orgDescriptions: Record<string, OrgMeta> = {
+  'Open-Source-Uniandes': {
+    tagline: 'Building open technology for the Uniandes community',
+    description: 'A student-led initiative at Universidad de los Andes dedicated to creating open-source tools that solve real problems for the university community. We believe the best solutions emerge from collaboration and listening to the people they serve. Every project is built in public — contributions are welcomed, and new ideas are mentored from concept to production.',
+    highlights: [
+      'Serving 8,000+ students with production-grade open tools',
+      'Student-run, community-first engineering culture',
+      'Open mentorship: from idea to deployed product',
+      'Building a portfolio of impact-driven software',
+    ],
+  },
+  'AI-Museum': {
+    tagline: 'Democratizing AI education through open, visual, interactive learning',
+    description: 'An ambitious initiative to make Artificial Intelligence education accessible to everyone — through open-source materials, rich visualizations, and novel interactive experiences. We are building a comprehensive library of learning resources so that anyone, anywhere, can learn or teach AI without barriers. Our long-term vision is the first physical AI Museum at global scale.',
+    highlights: [
+      'Open-source learning materials for all levels',
+      'Focus on visualizations, interactivity, and experimentation',
+      'Free forever — for learners and educators worldwide',
+      'Vision: the world\'s first physical AI Museum',
+    ],
+  },
+};
 ---
 
-<BaseLayout lang="en" title="Juan Sebastián Urrea López — Software Engineer">
+<BaseLayout
+  lang="en"
+  title={`${basics.name} — ${basics.label}`}
+  description={basics.summary}
+>
   <main id="main-content">
     <!-- Navigation -->
     <nav class="nav" aria-label="Main navigation">
       <div class="nav-inner">
         <a href="/" class="nav-logo">jsurrea</a>
-        <div class="nav-links">
-          <a href="#experience">{t('experience.title')}</a>
-          <a href="#education">{t('education.title')}</a>
-          <a href="#projects">{t('projects.title')}</a>
-          <a href="#skills">{t('skills.title')}</a>
-          <a href="#publications">{t('publications.title')}</a>
+        <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="nav-links" id="nav-links">
+          {work && work.length > 0 && <a href="#experience">Experience</a>}
+          {education && education.length > 0 && <a href="#education">Education</a>}
+          {publications && publications.length > 0 && <a href="#publications">Research</a>}
+          {skills && <a href="#skills">Skills</a>}
+          {awards && awards.length > 0 && <a href="#awards">Awards</a>}
+          <a href="#open-source">Open Source</a>
+          <a href="#projects">Projects</a>
         </div>
       </div>
     </nav>
 
     <!-- Hero Section -->
     <section class="hero" aria-label="Introduction">
+      <div class="hero-particles" aria-hidden="true" id="hero-particles"></div>
       <div class="hero-inner">
         <div class="hero-text">
-          <p class="hero-greeting">{t('hero.greeting')}</p>
-          <h1 class="hero-name">Juan Sebastián<br />Urrea López</h1>
+          <p class="hero-greeting">Hi, I'm</p>
+          <h1 class="hero-name">
+            {basics.name.split(' ').slice(0, 2).join(' ')}<br />
+            {basics.name.split(' ').slice(2).join(' ')}
+          </h1>
           <div class="hero-roles" aria-live="polite">
-            <span class="typewriter" id="typewriter">Software Engineer</span>
+            <span class="typewriter" id="typewriter">{basics.label}</span>
           </div>
-          <p class="hero-description">{t('hero.description')}</p>
+          <p class="hero-description">{basics.summary}</p>
           <div class="hero-ctas">
-            <a href="#projects" class="btn btn-primary">{t('hero.viewWork')}</a>
-            <a href="/cv.pdf" class="btn btn-secondary" download>{t('hero.downloadCV')}</a>
+            <a href="#projects" class="btn btn-primary">View My Work</a>
+            <a href="https://jsurrea.github.io/CV/" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">
+              Download CV
+            </a>
           </div>
           <div class="hero-social">
-            <a href="https://github.com/jsurrea" target="_blank" rel="noopener noreferrer" aria-label="GitHub">GitHub</a>
-            <a href="https://www.linkedin.com/in/js-urrea/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">LinkedIn</a>
-            <a href="mailto:jurrea5518@gmail.com" aria-label="Email">Email</a>
+            {basics.profiles.map((p) => (
+              <a
+                href={p.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={p.network}
+                class="hero-social-link"
+              >
+                {p.network}
+              </a>
+            ))}
+            <a href={`mailto:${basics.email}`} aria-label="Email" class="hero-social-link">Email</a>
           </div>
         </div>
         <div class="hero-image">
+          <div class="hero-image-ring" aria-hidden="true"></div>
           <img
             src="https://github.com/jsurrea.png"
-            alt="Juan Sebastián Urrea López"
+            alt={basics.name}
             width="300"
             height="300"
             loading="eager"
           />
         </div>
       </div>
-    </section>
-
-    <!-- Highlights Section -->
-    <section class="highlights" aria-label="Career highlights">
-      <div class="container">
-        <h2>{t('highlights.title')}</h2>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <span class="stat-value" data-target="4.69">0</span>
-            <span class="stat-label">GPA / 5.0</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-value" data-target="100000" data-suffix="+">0</span>
-            <span class="stat-label">{t('highlights.usersImpacted')}</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-value" data-target="8000" data-suffix="+">0</span>
-            <span class="stat-label">{t('highlights.studentsServed')}</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-value" data-target="2">0</span>
-            <span class="stat-label">{t('highlights.publications')}</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-value" data-target="6" data-suffix="+">0</span>
-            <span class="stat-label">{t('highlights.hackathons')}</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-value" data-target="9" data-suffix="+">0</span>
-            <span class="stat-label">{t('highlights.certifications')}</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-value" data-target="4" data-suffix="+">0</span>
-            <span class="stat-label">{t('highlights.experience')}</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-value" data-prefix="Top " data-target="11">0</span>
-            <span class="stat-label">Nationally (Saber Pro)</span>
-          </div>
-        </div>
+      <div class="hero-scroll-hint" aria-hidden="true">
+        <span class="scroll-indicator"></span>
       </div>
     </section>
 
     <!-- Experience Section -->
-    <section id="experience" class="section" aria-label="Work experience">
-      <div class="container">
-        <h2>{t('experience.title')}</h2>
-        <div class="timeline">
-          {experiences.map((exp) => (
-            <article class="timeline-item" key={exp.id}>
-              <div class="timeline-dot" aria-hidden="true"></div>
-              <div class="timeline-content">
-                <div class="timeline-header">
-                  <h3>{exp.data.role}</h3>
-                  <a href={exp.data.url} target="_blank" rel="noopener noreferrer" class="company-name">
-                    {exp.data.company}
-                  </a>
+    {work && work.length > 0 && (
+      <section id="experience" class="section" aria-label="Work experience">
+        <div class="container">
+          <h2 class="section-heading">
+            <span class="section-number">01</span>
+            Experience
+          </h2>
+          <div class="timeline">
+            {work.map((job) => (
+              <article class="timeline-item">
+                <div class="timeline-dot" aria-hidden="true"></div>
+                <div class="timeline-content">
+                  <div class="timeline-header">
+                    <div class="timeline-title-row">
+                      <h3>{job.position}</h3>
+                      {job.note && <span class="job-note">{job.note}</span>}
+                    </div>
+                    <a href={job.url} target="_blank" rel="noopener noreferrer" class="company-name">
+                      {job.name}
+                    </a>
+                  </div>
+                  <div class="timeline-meta">
+                    {job.type && <span class={`badge badge-type badge-${job.type.replace(/\s+/g, '-')}`}>{job.type}</span>}
+                    <time>
+                      {fmtYearMonth(job.startDate)} — {job.endDate ? fmtYearMonth(job.endDate) : 'Present'}
+                    </time>
+                    {job.location && <span class="location-tag">📍 {job.location}</span>}
+                  </div>
+                  <ul class="highlights-list">
+                    {job.highlights.map((h: string) => (
+                      <li>{h}</li>
+                    ))}
+                  </ul>
+                  {job.stack && job.stack.length > 0 && (
+                    <div class="stack-tags">
+                      {job.stack.map((s: string) => (
+                        <span class="tag">{s}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div class="timeline-meta">
-                  <span class="badge badge-type">{exp.data.type}</span>
-                  <time datetime={exp.data.startDate}>
-                    {formatDate(exp.data.startDate, 'en')} — {exp.data.endDate ? formatDate(exp.data.endDate, 'en') : t('experience.present')}
-                  </time>
-                  <span class="duration">({calculateDuration(exp.data.startDate, exp.data.endDate)})</span>
-                </div>
-                <p>{exp.data.description}</p>
-                <ul class="highlights-list">
-                  {exp.data.highlights.map((h: string) => (
-                    <li>{h}</li>
-                  ))}
-                </ul>
-                <div class="stack-tags">
-                  {exp.data.stack.map((s: string) => (
-                    <span class="tag">{s}</span>
-                  ))}
-                </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    )}
 
     <!-- Education Section -->
-    <section id="education" class="section" aria-label="Education">
-      <div class="container">
-        <h2>{t('education.title')}</h2>
-        <div class="timeline">
-          <article class="timeline-item">
-            <div class="timeline-dot"></div>
-            <div class="timeline-content">
-              <h3>Master's in Systems &amp; Computing Engineering</h3>
-              <p class="company-name">Universidad de los Andes</p>
-              <time datetime="2026-01">January 2026 — Present</time>
-              <p>Focus: Reinforcement Learning, Advanced Computer Vision, Graduate-level ML</p>
-            </div>
-          </article>
-          <article class="timeline-item">
-            <div class="timeline-dot"></div>
-            <div class="timeline-content">
-              <h3>B.Sc. Systems &amp; Computing Engineering</h3>
-              <p class="company-name">Universidad de los Andes</p>
-              <time datetime="2019">2019 — 2025</time>
-              <p>🏅 {t('education.magna')} · GPA 4.69/5.0 · {t('education.scholarship')}</p>
-            </div>
-          </article>
-          <article class="timeline-item">
-            <div class="timeline-dot"></div>
-            <div class="timeline-content">
-              <h3>B.Sc. Industrial Engineering</h3>
-              <p class="company-name">Universidad de los Andes</p>
-              <time datetime="2019">2019 — 2024</time>
-              <p>🏅 {t('education.magna')} · GPA 4.7/5.0</p>
-            </div>
-          </article>
-          <article class="timeline-item">
-            <div class="timeline-dot"></div>
-            <div class="timeline-content">
-              <h3>Minor in Biomedical Engineering (AI &amp; Computer Vision)</h3>
-              <p class="company-name">Universidad de los Andes</p>
-              <time datetime="2019">2019 — 2024</time>
-              <p>Research under Prof. Pablo Arbeláez, Biomedical Computer Vision Research Group</p>
-            </div>
-          </article>
+    {education && education.length > 0 && (
+      <section id="education" class="section section-alt" aria-label="Education">
+        <div class="container">
+          <h2 class="section-heading">
+            <span class="section-number">02</span>
+            Education
+          </h2>
+          <div class="timeline">
+            {education.map((edu) => (
+              <article class="timeline-item">
+                <div class="timeline-dot timeline-dot-edu" aria-hidden="true"></div>
+                <div class="timeline-content">
+                  <div class="timeline-header">
+                    <h3>{edu.studyType} in {edu.area}</h3>
+                    <a href={edu.url} target="_blank" rel="noopener noreferrer" class="company-name">
+                      {edu.institution}
+                    </a>
+                  </div>
+                  <div class="timeline-meta">
+                    <time>
+                      {fmtYearMonth(edu.startDate)} — {edu.endDate ? fmtYearMonth(edu.endDate) : 'Present'}
+                    </time>
+                    {edu.location && <span class="location-tag">📍 {edu.location}</span>}
+                  </div>
+                  <div class="edu-honors">
+                    {edu.honor && <span class="edu-honor-badge">{edu.honor}</span>}
+                    {edu.gpa && <span class="edu-gpa">GPA: {edu.gpa}</span>}
+                  </div>
+                  {edu.highlights && edu.highlights.length > 0 && (
+                    <ul class="highlights-list">
+                      {edu.highlights.map((h: string) => (
+                        <li>{h}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    )}
 
-    <!-- Projects Section -->
-    <section id="projects" class="section" aria-label="Projects">
-      <div class="container">
-        <h2>{t('projects.title')}</h2>
-        <div class="filter-bar" role="group" aria-label="Filter projects by category">
-          <button class="filter-btn active" data-filter="all">{t('projects.filterAll')}</button>
-          <button class="filter-btn" data-filter="research">Research</button>
-          <button class="filter-btn" data-filter="ml">ML / AI</button>
-          <button class="filter-btn" data-filter="web">Web</button>
-          <button class="filter-btn" data-filter="game">Games</button>
-          <button class="filter-btn" data-filter="open-source">Open Source</button>
-          <button class="filter-btn" data-filter="data">Data</button>
-          <button class="filter-btn" data-filter="tools">Tools</button>
-          <button class="filter-btn" data-filter="mobile">Mobile</button>
-        </div>
-        <div class="projects-grid">
-          {sortedProjects.map((proj) => (
-            <article class="project-card" data-category={proj.data.category} key={proj.id}>
-              {proj.data.image && (
-                <div class="project-image">
-                  <img src={proj.data.image} alt={proj.data.name} loading="lazy" />
+    <!-- Publications Section -->
+    {publications && publications.length > 0 && (
+      <section id="publications" class="section" aria-label="Publications">
+        <div class="container">
+          <h2 class="section-heading">
+            <span class="section-number">03</span>
+            Research & Publications
+          </h2>
+          <div class="publications-list">
+            {publications.map((pub) => (
+              <article class="pub-card">
+                <div class="pub-header">
+                  <span class="ieee-badge">IEEE {pub.year}</span>
+                  <span class="pub-venue">{pub.venue}</span>
                 </div>
-              )}
-              <div class="project-content">
-                <div class="project-top">
-                  <h3>{proj.data.name}</h3>
-                  <span class="project-year">{proj.data.year}</span>
-                </div>
-                <p>{proj.data.description}</p>
-                <div class="project-tags">
-                  {proj.data.tags.map((tag: string) => (
-                    <span class="tag">{tag}</span>
-                  ))}
-                </div>
-                <div class="project-links">
-                  {proj.data.githubRepo && (
-                    <a
-                      href={`https://github.com/${proj.data.githubRepo}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {t('projects.viewCode')}
+                <h3>{pub.title}</h3>
+                <p class="pub-authors">{pub.authors}</p>
+                <div class="pub-links">
+                  {pub.paperUrl && (
+                    <a href={pub.paperUrl} target="_blank" rel="noopener noreferrer" class="pub-link">
+                      📄 Paper
                     </a>
                   )}
-                  {proj.data.liveUrl && (
-                    <a href={proj.data.liveUrl} target="_blank" rel="noopener noreferrer">
-                      {t('projects.liveDemo')}
+                  {pub.codeUrl && (
+                    <a href={pub.codeUrl} target="_blank" rel="noopener noreferrer" class="pub-link">
+                      Code
+                    </a>
+                  )}
+                  {pub.demoUrl && (
+                    <a href={pub.demoUrl} target="_blank" rel="noopener noreferrer" class="pub-link">
+                      🚀 Demo
+                    </a>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Volunteer Section -->
+    {volunteer && volunteer.length > 0 && (
+      <section id="volunteer" class="section section-alt" aria-label="Volunteer">
+        <div class="container">
+          <h2 class="section-heading">
+            <span class="section-number">04</span>
+            Volunteer
+          </h2>
+          <div class="timeline">
+            {volunteer.map((v) => (
+              <article class="timeline-item">
+                <div class="timeline-dot" aria-hidden="true"></div>
+                <div class="timeline-content">
+                  <div class="timeline-header">
+                    <h3>{v.role}</h3>
+                    <a href={v.url} target="_blank" rel="noopener noreferrer" class="company-name">
+                      {v.organization}
+                    </a>
+                  </div>
+                  <div class="timeline-meta">
+                    <time>
+                      {fmtYearMonth(v.startDate)} — {v.endDate ? fmtYearMonth(v.endDate) : 'Present'}
+                    </time>
+                  </div>
+                  <p class="volunteer-summary">{v.summary}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Skills Section -->
+    {skills && (
+      <section id="skills" class="section" aria-label="Skills">
+        <div class="container">
+          <h2 class="section-heading">
+            <span class="section-number">05</span>
+            Skills
+          </h2>
+          <div class="skills-grid">
+            {skills.languages && skills.languages.length > 0 && (
+              <div class="skill-group">
+                <h3>Languages</h3>
+                <div class="skill-tags">
+                  {skills.languages.map((s: string) => <span class="tag tag-lang">{s}</span>)}
+                </div>
+              </div>
+            )}
+            {skills.mlAi && skills.mlAi.length > 0 && (
+              <div class="skill-group">
+                <h3>ML / AI</h3>
+                <div class="skill-tags">
+                  {skills.mlAi.map((s: string) => <span class="tag tag-ml">{s}</span>)}
+                </div>
+              </div>
+            )}
+            {skills.cloudDevops && skills.cloudDevops.length > 0 && (
+              <div class="skill-group">
+                <h3>Cloud & DevOps</h3>
+                <div class="skill-tags">
+                  {skills.cloudDevops.map((s: string) => <span class="tag tag-cloud">{s}</span>)}
+                </div>
+              </div>
+            )}
+            {skills.frontend && skills.frontend.length > 0 && (
+              <div class="skill-group">
+                <h3>Frontend</h3>
+                <div class="skill-tags">
+                  {skills.frontend.map((s: string) => <span class="tag tag-fe">{s}</span>)}
+                </div>
+              </div>
+            )}
+            {skills.backend && skills.backend.length > 0 && (
+              <div class="skill-group">
+                <h3>Backend</h3>
+                <div class="skill-tags">
+                  {skills.backend.map((s: string) => <span class="tag tag-be">{s}</span>)}
+                </div>
+              </div>
+            )}
+            {skills.databases && skills.databases.length > 0 && (
+              <div class="skill-group">
+                <h3>Databases</h3>
+                <div class="skill-tags">
+                  {skills.databases.map((s: string) => <span class="tag tag-db">{s}</span>)}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Awards Section -->
+    {awards && awards.length > 0 && (
+      <section id="awards" class="section section-alt" aria-label="Awards and honors">
+        <div class="container">
+          <h2 class="section-heading">
+            <span class="section-number">06</span>
+            Awards & Honors
+          </h2>
+          <div class="awards-grid">
+            {awards.map((award) => (
+              <div class="award-card">
+                <span class="award-icon" aria-hidden="true">{award.icon || '🏆'}</span>
+                <div>
+                  <h3>{award.title}</h3>
+                  <p class="award-meta">{award.awarder} · {fmtYearMonth(award.date) || award.date}</p>
+                  <p class="award-summary">{award.summary}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Certifications Section -->
+    {certificates && certificates.length > 0 && (
+      <section id="certifications" class="section" aria-label="Certifications">
+        <div class="container">
+          <h2 class="section-heading">
+            <span class="section-number">07</span>
+            Certifications
+          </h2>
+          <div class="certs-grid">
+            {certificates.map((cert) => (
+              <div class="cert-card">
+                <span class="cert-issuer">{cert.issuer}</span>
+                <h3>{cert.name}</h3>
+                <div class="cert-footer">
+                  <span class="cert-year">{fmtYearMonth(cert.date) || cert.date}</span>
+                  {cert.url && (
+                    <a href={cert.url} target="_blank" rel="noopener noreferrer" class="cert-link">
+                      View →
                     </a>
                   )}
                 </div>
               </div>
-            </article>
-          ))}
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Open Source Organizations Section -->
+    <section id="open-source" class="section section-alt section-orgs" aria-label="Open source organizations">
+      <div class="container">
+        <h2 class="section-heading">
+          <span class="section-number">08</span>
+          Open Source Initiatives
+        </h2>
+        <p class="section-intro">
+          Beyond individual contributions, I co-founded and lead two open-source organizations creating lasting impact in education and community technology.
+        </p>
+        <div class="orgs-grid">
+          {orgs.map((org) => {
+            const meta = orgDescriptions[org.login];
+            return (
+              <article class="org-card">
+                <div class="org-header">
+                  <img
+                    src={org.avatar_url}
+                    alt={`${org.login} organization logo`}
+                    class="org-avatar"
+                    loading="lazy"
+                    width="64"
+                    height="64"
+                  />
+                  <div class="org-title">
+                    <h3>{org.login}</h3>
+                    {meta && <p class="org-tagline">{meta.tagline}</p>}
+                  </div>
+                </div>
+                {meta && <p class="org-description">{meta.description}</p>}
+                {meta && meta.highlights.length > 0 && (
+                  <ul class="org-highlights">
+                    {meta.highlights.map((h: string) => (
+                      <li>
+                        <span class="org-highlight-dot" aria-hidden="true">✦</span>
+                        {h}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div class="org-links">
+                  <a
+                    href={org.html_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="org-link org-link-github"
+                  >
+                    GitHub Organization →
+                  </a>
+                  <a
+                    href={org.pagesUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="org-link org-link-web"
+                  >
+                    Website →
+                  </a>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </div>
     </section>
 
-    <!-- Publications Section -->
-    <section id="publications" class="section" aria-label="Publications">
+    <!-- Projects Section (from GitHub API) -->
+    <section id="projects" class="section" aria-label="Projects">
       <div class="container">
-        <h2>{t('publications.title')}</h2>
-        <div class="publications-list">
-          <article class="pub-card">
-            <span class="ieee-badge">IEEE</span>
-            <h3>ANTARES: A Software-Based Tool for Simulating Naval Radar Operations</h3>
-            <p class="pub-venue">IEEE ICMT 2025</p>
-            <p class="pub-authors">J. S. Urrea-Lopez, C. Barreto-Reyes, M. Linares-Vásquez</p>
-            <div class="pub-links">
-              <a href="https://thesoftwaredesignlab.github.io/ANTARES" target="_blank" rel="noopener noreferrer">
-                View Publication
-              </a>
-              <a href="https://github.com/jsurrea/ANTARES" target="_blank" rel="noopener noreferrer">
-                GitHub
-              </a>
-            </div>
-          </article>
-          <article class="pub-card">
-            <span class="ieee-badge">IEEE</span>
-            <h3>Real-Time Face Mask Detection with SSD</h3>
-            <p class="pub-venue">IEEE CI-IB&amp;BI 2021</p>
-            <p class="pub-authors">E. S. Lozano Roa, J. S. Urrea López, I. D. Chacón Silva</p>
-            <div class="pub-links">
-              <a href="https://github.com/jsurrea/face-mask-detection-SSD" target="_blank" rel="noopener noreferrer">
-                View Code
-              </a>
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <!-- Skills Section -->
-    <section id="skills" class="section" aria-label="Skills">
-      <div class="container">
-        <h2>{t('skills.title')}</h2>
-        <div class="skills-grid">
-          <div class="skill-group">
-            <h3>{t('skills.languages')}</h3>
-            <div class="skill-tags">
-              {['TypeScript', 'Python', 'Go', 'Java', 'Rust', 'Dart', 'SQL', 'C', 'Assembly'].map((s) => (
-                <span class="tag tag-lang">{s}</span>
-              ))}
-            </div>
+        <h2 class="section-heading">
+          <span class="section-number">09</span>
+          Projects
+        </h2>
+        <p class="section-intro">
+          All public repositories from my{' '}
+          <a href={`https://github.com/${GITHUB_USER}`} target="_blank" rel="noopener noreferrer" class="inline-link">GitHub profile</a>,
+          sorted by most recently updated.
+        </p>
+        {repos.length > 0 ? (
+          <div class="projects-grid">
+            {repos.map((repo) => {
+              const year = new Date(repo.updated_at).getFullYear();
+              const displayName = repo.name
+                .replace(/-/g, ' ')
+                .replace(/_/g, ' ')
+                .replace(/\b\w/g, (c: string) => c.toUpperCase());
+              return (
+                <article class="project-card">
+                  <div class="project-image">
+                    <img
+                      src={repo.socialPreviewUrl}
+                      alt={`${displayName} preview`}
+                      loading="lazy"
+                      width="600"
+                      height="314"
+                    />
+                  </div>
+                  <div class="project-content">
+                    <div class="project-top">
+                      <h3>{displayName}</h3>
+                      <span class="project-year">{year}</span>
+                    </div>
+                    {repo.description && <p class="project-desc">{repo.description}</p>}
+                    {repo.topics && repo.topics.length > 0 && (
+                      <div class="project-tags">
+                        {repo.topics.slice(0, 5).map((t: string) => (
+                          <span class="tag">{t}</span>
+                        ))}
+                      </div>
+                    )}
+                    <div class="project-links">
+                      <a
+                        href={repo.html_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="project-link project-link-code"
+                      >
+                        View Code
+                      </a>
+                      <a
+                        href={repo.pagesUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="project-link project-link-demo"
+                      >
+                        Live Demo
+                      </a>
+                    </div>
+                    {(repo.language || repo.stargazers_count > 0) && (
+                      <div class="project-stats">
+                        {repo.language && <span class="repo-lang">{repo.language}</span>}
+                        {repo.stargazers_count > 0 && (
+                          <span class="repo-stars">⭐ {repo.stargazers_count}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
           </div>
-          <div class="skill-group">
-            <h3>{t('skills.mlAi')}</h3>
-            <div class="skill-tags">
-              {['PyTorch', 'TensorFlow', 'CNNs', 'Transformers', 'NeRF', 'Diffusion Models', 'RL', 'SSD', 'Object Detection', 'LLM Fine-tuning'].map((s) => (
-                <span class="tag tag-ml">{s}</span>
-              ))}
-            </div>
-          </div>
-          <div class="skill-group">
-            <h3>{t('skills.cloudDevops')}</h3>
-            <div class="skill-tags">
-              {['AWS Lambda', 'EventBridge', 'API Gateway', 'GCP', 'Cloud Run', 'Docker', 'GitHub Actions', 'New Relic'].map((s) => (
-                <span class="tag tag-cloud">{s}</span>
-              ))}
-            </div>
-          </div>
-          <div class="skill-group">
-            <h3>{t('skills.frontend')}</h3>
-            <div class="skill-tags">
-              {['Astro', 'React', 'Vue.js', 'Flutter', 'Tailwind CSS', 'ag-grid', 'Plotly'].map((s) => (
-                <span class="tag tag-fe">{s}</span>
-              ))}
-            </div>
-          </div>
-          <div class="skill-group">
-            <h3>{t('skills.backend')}</h3>
-            <div class="skill-tags">
-              {['Nest.js', 'Node.js', 'GraphQL', 'REST', 'Auth0', 'Django'].map((s) => (
-                <span class="tag tag-be">{s}</span>
-              ))}
-            </div>
-          </div>
-          <div class="skill-group">
-            <h3>{t('skills.databases')}</h3>
-            <div class="skill-tags">
-              {['PostgreSQL', 'Redis', 'SQL Server', 'Firebase', 'DynamoDB'].map((s) => (
-                <span class="tag tag-db">{s}</span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Awards Section -->
-    <section id="awards" class="section" aria-label="Awards and honors">
-      <div class="container">
-        <h2>{t('awards.title')}</h2>
-        <div class="awards-grid">
-          <div class="award-card">
-            <span class="award-icon">🥇</span>
-            <div>
-              <h3>11th Best National Score — Saber Pro</h3>
-              <p>December 2024 · ~200,000 test takers</p>
-            </div>
-          </div>
-          <div class="award-card">
-            <span class="award-icon">🎓</span>
-            <div>
-              <h3>Magna Cum Laude × 2</h3>
-              <p>Systems Engineering (4.69) + Industrial Engineering (4.7)</p>
-            </div>
-          </div>
-          <div class="award-card">
-            <span class="award-icon">🏅</span>
-            <div>
-              <h3>Full-Tuition Merit Scholarship</h3>
-              <p>Universidad de los Andes · 2019–2025</p>
-            </div>
-          </div>
-          <div class="award-card">
-            <span class="award-icon">🏆</span>
-            <div>
-              <h3>3× Codefest Ad Astra Winner</h3>
-              <p>2022, 2023, 2024 (consecutive wins)</p>
-            </div>
-          </div>
-          <div class="award-card">
-            <span class="award-icon">🎮</span>
-            <div>
-              <h3>EA GameJam 2026 — Best Game Experience</h3>
-              <p>Electronic Arts · NEXARI project</p>
-            </div>
-          </div>
-          <div class="award-card">
-            <span class="award-icon">🏆</span>
-            <div>
-              <h3>Extreme Programming Competition 2022</h3>
-              <p>1st Place</p>
-            </div>
-          </div>
-          <div class="award-card">
-            <span class="award-icon">🏆</span>
-            <div>
-              <h3>Sabana Hack 2022</h3>
-              <p>Winner</p>
-            </div>
-          </div>
-          <div class="award-card">
-            <span class="award-icon">🏆</span>
-            <div>
-              <h3>DataJam for Transparency</h3>
-              <p>Winner · Paquito anti-corruption tool</p>
-            </div>
-          </div>
-          <div class="award-card">
-            <span class="award-icon">🤝</span>
-            <div>
-              <h3>Ego4D Volunteer Contributor</h3>
-              <p>World's largest egocentric video dataset · Meta AI</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Certifications Section -->
-    <section id="certifications" class="section" aria-label="Certifications">
-      <div class="container">
-        <h2>{t('certifications.title')}</h2>
-        <div class="certs-grid">
-          {[
-            { title: 'Building LLM Applications with Prompt Engineering', issuer: 'NVIDIA DLI', year: 2025 },
-            { title: 'Building Transformer-Based NLP Applications', issuer: 'NVIDIA DLI', year: 2024 },
-            { title: 'Fundamentals of Deep Learning', issuer: 'NVIDIA DLI', year: 2024 },
-            { title: 'Deep Learning Specialization (5 courses)', issuer: 'DeepLearning.AI', year: 2020 },
-            { title: 'Applied Data Science with Python (5 courses)', issuer: 'University of Michigan', year: 2021 },
-            { title: 'Data Science for All Colombia 5.0 — Honors', issuer: 'Correlation One', year: 2021 },
-            { title: 'Web Applications Development', issuer: 'MinTIC Colombia', year: 2022 },
-          ].map((cert) => (
-            <div class="cert-card">
-              <span class="cert-issuer">{cert.issuer}</span>
-              <h3>{cert.title}</h3>
-              <span class="cert-year">{cert.year}</span>
-            </div>
-          ))}
-        </div>
+        ) : (
+          <p class="empty-state">Projects loading from GitHub...</p>
+        )}
       </div>
     </section>
 
@@ -432,12 +611,13 @@ const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
     <footer>
       <div class="footer-inner">
         <div class="footer-links">
-          <a href="https://github.com/jsurrea" target="_blank" rel="noopener noreferrer">GitHub</a>
-          <a href="https://www.linkedin.com/in/js-urrea/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-          <a href="mailto:jurrea5518@gmail.com">jurrea5518@gmail.com</a>
+          {basics.profiles.map((p) => (
+            <a href={p.url} target="_blank" rel="noopener noreferrer">{p.network}</a>
+          ))}
+          <a href={`mailto:${basics.email}`}>{basics.email}</a>
         </div>
-        <p>{t('footer.madeWith')} ❤️ {t('footer.by')}</p>
-        <p>Bogotá, Colombia 🇨🇴</p>
+        <p class="footer-credit">Made with ❤️ by {basics.name}</p>
+        <p class="footer-location">Bogotá, Colombia 🇨🇴</p>
       </div>
     </footer>
   </main>
@@ -451,10 +631,15 @@ const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
     left: 0;
     right: 0;
     z-index: 100;
-    background: rgba(10, 10, 15, 0.9);
-    backdrop-filter: blur(12px);
+    background: rgba(10, 10, 15, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border);
-    padding: 1rem 0;
+    padding: 0.9rem 0;
+    transition: background 0.3s;
+  }
+  .nav.scrolled {
+    background: rgba(10, 10, 15, 0.98);
   }
   .nav-inner {
     max-width: 1200px;
@@ -465,24 +650,53 @@ const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
     align-items: center;
   }
   .nav-logo {
-    font-weight: 700;
-    font-size: 1.25rem;
+    font-weight: 800;
+    font-size: 1.2rem;
     color: var(--accent-primary);
     text-decoration: none;
+    letter-spacing: -0.02em;
   }
   .nav-links {
     display: flex;
-    gap: 2rem;
+    gap: 1.75rem;
     align-items: center;
   }
   .nav-links a {
     color: var(--text-secondary);
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
+    font-weight: 500;
     transition: color 0.2s;
+    position: relative;
   }
-  .nav-links a:hover {
-    color: var(--text-primary);
+  .nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--accent-primary);
+    transition: width 0.2s;
+  }
+  .nav-links a:hover { color: var(--text-primary); }
+  .nav-links a:hover::after { width: 100%; }
+  .nav-toggle {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+  }
+  .nav-toggle span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--text-primary);
+    border-radius: 2px;
+    transition: all 0.3s;
   }
 
   /* Hero */
@@ -491,6 +705,14 @@ const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
     display: flex;
     align-items: center;
     padding-top: 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
   }
   .hero-inner {
     max-width: 1200px;
@@ -500,41 +722,45 @@ const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
     grid-template-columns: 1fr auto;
     gap: 4rem;
     align-items: center;
+    position: relative;
+    z-index: 1;
   }
   .hero-greeting {
     color: var(--accent-secondary);
     font-size: 1.1rem;
     margin-bottom: 0.5rem;
+    letter-spacing: 0.02em;
   }
   .hero-name {
-    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-size: clamp(2.5rem, 5.5vw, 4.5rem);
     font-weight: 800;
     line-height: 1.1;
-    background: linear-gradient(135deg, var(--text-primary), var(--accent-primary));
+    background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent-primary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     margin-bottom: 1rem;
+    letter-spacing: -0.03em;
   }
   .hero-roles {
-    font-size: 1.3rem;
+    font-size: 1.25rem;
     color: var(--accent-secondary);
     margin-bottom: 1.5rem;
     min-height: 2rem;
+    font-weight: 500;
   }
   .typewriter::after {
     content: '|';
     animation: blink 1s step-end infinite;
+    color: var(--accent-primary);
   }
-  @keyframes blink {
-    50% { opacity: 0; }
-  }
+  @keyframes blink { 50% { opacity: 0; } }
   .hero-description {
     color: var(--text-secondary);
-    font-size: 1.1rem;
-    max-width: 540px;
+    font-size: 1.05rem;
+    max-width: 560px;
     margin-bottom: 2rem;
-    line-height: 1.7;
+    line-height: 1.8;
   }
   .hero-ctas {
     display: flex;
@@ -545,96 +771,117 @@ const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
   .hero-social {
     display: flex;
     gap: 1.5rem;
+    flex-wrap: wrap;
   }
-  .hero-social a {
+  .hero-social-link {
     color: var(--text-secondary);
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
+    font-weight: 500;
     transition: color 0.2s;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 1px;
   }
-  .hero-social a:hover { color: var(--accent-primary); }
+  .hero-social-link:hover {
+    color: var(--accent-primary);
+    border-bottom-color: var(--accent-primary);
+  }
+  .hero-image {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .hero-image-ring {
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
+      var(--accent-primary),
+      var(--accent-secondary),
+      var(--accent-primary)
+    );
+    animation: ring-spin 8s linear infinite;
+    opacity: 0.6;
+  }
+  .hero-image-ring::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: var(--bg-base);
+  }
+  @keyframes ring-spin { to { transform: rotate(360deg); } }
   .hero-image img {
     width: 280px;
     height: 280px;
     border-radius: 50%;
     border: 3px solid var(--accent-primary);
-    box-shadow: 0 0 40px var(--glow);
+    box-shadow: 0 0 60px rgba(124, 106, 247, 0.4);
     object-fit: cover;
+    position: relative;
+    z-index: 1;
+  }
+  .hero-scroll-hint {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+  }
+  .scroll-indicator {
+    display: block;
+    width: 2px;
+    height: 40px;
+    background: linear-gradient(to bottom, var(--accent-primary), transparent);
+    animation: scroll-fade 2s ease-in-out infinite;
+  }
+  @keyframes scroll-fade {
+    0%, 100% { opacity: 0; transform: scaleY(0) translateY(0); transform-origin: top; }
+    50% { opacity: 1; transform: scaleY(1) translateY(0); transform-origin: top; }
   }
 
   /* Buttons */
   .btn {
-    display: inline-block;
-    padding: 0.75rem 1.75rem;
-    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.75rem;
+    border-radius: 10px;
     font-weight: 600;
     text-decoration: none;
-    transition: all 0.2s;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     font-size: 0.95rem;
+    letter-spacing: 0.01em;
   }
   .btn-primary {
-    background: var(--accent-primary);
+    background: linear-gradient(135deg, var(--accent-primary), #9b8bf8);
     color: white;
+    box-shadow: 0 4px 20px rgba(124, 106, 247, 0.3);
   }
   .btn-primary:hover {
-    background: #6b59e6;
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px var(--glow);
+    box-shadow: 0 8px 30px rgba(124, 106, 247, 0.5);
   }
   .btn-secondary {
-    border: 1px solid var(--accent-primary);
+    border: 1.5px solid var(--accent-primary);
     color: var(--accent-primary);
-    background: transparent;
+    background: rgba(124, 106, 247, 0.05);
   }
   .btn-secondary:hover {
     background: var(--accent-primary);
     color: white;
     transform: translateY(-2px);
-  }
-
-  /* Highlights */
-  .highlights {
-    padding: 5rem 0;
-    background: var(--bg-surface);
-  }
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1.5rem;
-    margin-top: 2rem;
-  }
-  .stat-card {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.5rem;
-    text-align: center;
-    transition: border-color 0.2s, transform 0.2s;
-  }
-  .stat-card:hover {
-    border-color: var(--accent-primary);
-    transform: translateY(-4px);
-  }
-  .stat-value {
-    display: block;
-    font-size: 2rem;
-    font-weight: 800;
-    color: var(--accent-primary);
-  }
-  .stat-label {
-    display: block;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    margin-top: 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    box-shadow: 0 8px 30px rgba(124, 106, 247, 0.4);
   }
 
   /* Sections */
   .section {
-    padding: 5rem 0;
+    padding: 6rem 0;
   }
-  .section:nth-child(even) {
+  .section-alt {
     background: var(--bg-surface);
   }
   .container {
@@ -642,20 +889,44 @@ const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
     margin: 0 auto;
     padding: 0 1.5rem;
   }
-  h2 {
-    font-size: clamp(1.8rem, 4vw, 2.5rem);
+  .section-heading {
+    font-size: clamp(1.8rem, 3.5vw, 2.5rem);
     font-weight: 800;
-    margin-bottom: 2.5rem;
-    position: relative;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    letter-spacing: -0.02em;
   }
-  h2::after {
+  .section-number {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    letter-spacing: 0.1em;
+    padding: 0.2rem 0.55rem;
+    border: 1px solid var(--accent-primary);
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .section-heading::after {
     content: '';
-    display: block;
-    width: 60px;
-    height: 4px;
-    background: var(--accent-primary);
-    border-radius: 2px;
-    margin-top: 0.5rem;
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, var(--border), transparent);
+    margin-left: 1rem;
+    max-width: 200px;
+  }
+  .section-intro {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin-bottom: 0;
+    max-width: 680px;
+    line-height: 1.7;
+  }
+  .section-intro .inline-link {
+    color: var(--accent-primary);
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent-primary);
   }
 
   /* Timeline */
@@ -663,13 +934,14 @@ const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
     position: relative;
     padding-left: 2rem;
     border-left: 2px solid var(--border);
+    margin-top: 2.5rem;
   }
   .timeline-item {
     position: relative;
-    padding: 0 0 2.5rem 2rem;
+    padding: 0 0 2.5rem 2.5rem;
     opacity: 0;
     transform: translateX(-20px);
-    transition: opacity 0.5s, transform 0.5s;
+    transition: opacity 0.6s ease, transform 0.6s ease;
   }
   .timeline-item.visible {
     opacity: 1;
@@ -677,30 +949,44 @@ const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
   }
   .timeline-dot {
     position: absolute;
-    left: -2.45rem;
+    left: -2.55rem;
     top: 0.25rem;
     width: 14px;
     height: 14px;
     background: var(--accent-primary);
     border-radius: 50%;
     border: 2px solid var(--bg-base);
-    box-shadow: 0 0 10px var(--glow);
+    box-shadow: 0 0 12px var(--glow);
+  }
+  .timeline-dot-edu {
+    background: var(--accent-secondary);
+    box-shadow: 0 0 12px rgba(0, 212, 170, 0.5);
   }
   .timeline-header {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.6rem;
   }
-  .timeline-header h3 {
+  .timeline-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.25rem;
+    flex-wrap: wrap;
+  }
+  .timeline-title-row h3,
+  .timeline-header > h3 {
     font-size: 1.15rem;
     font-weight: 700;
+    color: var(--text-primary);
   }
   .company-name {
     color: var(--accent-secondary);
     text-decoration: none;
     font-weight: 600;
+    font-size: 0.95rem;
+    transition: color 0.2s;
+    display: block;
   }
+  .company-name:hover { color: var(--text-primary); }
   .timeline-meta {
     display: flex;
     align-items: center;
@@ -708,32 +994,86 @@ const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
     gap: 0.75rem;
     font-size: 0.85rem;
     color: var(--text-secondary);
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
+    margin-top: 0.4rem;
   }
-  .duration { color: var(--text-secondary); }
+  .location-tag { color: var(--text-secondary); font-size: 0.8rem; }
   .highlights-list {
-    list-style: disc;
-    padding-left: 1.25rem;
+    list-style: none;
+    padding: 0;
     color: var(--text-secondary);
-    font-size: 0.95rem;
+    font-size: 0.925rem;
     margin: 0.75rem 0;
-    line-height: 1.7;
+    line-height: 1.75;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .highlights-list li {
+    padding-left: 1.25rem;
+    position: relative;
+  }
+  .highlights-list li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--accent-primary);
+    font-size: 0.7rem;
+    top: 0.25rem;
+  }
+  .job-note {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #ff6b35;
+    border: 1px solid #ff6b35;
+    padding: 0.1rem 0.5rem;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
   }
 
-  /* Tags/Badges */
+  /* Badges */
   .badge {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     padding: 0.2rem 0.6rem;
     border-radius: 99px;
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.72rem;
+    font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
-  .badge-type {
-    background: rgba(124, 106, 247, 0.15);
-    color: var(--accent-primary);
-    border: 1px solid var(--accent-primary);
+  .badge-full-time { background: rgba(124, 106, 247, 0.15); color: var(--accent-primary); border: 1px solid rgba(124, 106, 247, 0.4); }
+  .badge-research { background: rgba(0, 212, 170, 0.1); color: var(--accent-secondary); border: 1px solid rgba(0, 212, 170, 0.3); }
+  .badge-internship { background: rgba(245, 200, 66, 0.1); color: var(--accent-gold); border: 1px solid rgba(245, 200, 66, 0.3); }
+  .badge-freelance { background: rgba(255, 107, 53, 0.1); color: #ff6b35; border: 1px solid rgba(255, 107, 53, 0.3); }
+  .badge-type { background: rgba(124, 106, 247, 0.15); color: var(--accent-primary); border: 1px solid rgba(124, 106, 247, 0.4); }
+
+  /* Education specific */
+  .edu-honors {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
   }
+  .edu-honor-badge {
+    background: linear-gradient(135deg, rgba(245, 200, 66, 0.2), rgba(245, 200, 66, 0.1));
+    color: var(--accent-gold);
+    border: 1px solid rgba(245, 200, 66, 0.4);
+    padding: 0.2rem 0.75rem;
+    border-radius: 99px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+  }
+  .edu-gpa {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  /* Tags */
   .stack-tags, .project-tags, .skill-tags {
     display: flex;
     flex-wrap: wrap;
@@ -744,7 +1084,7 @@ const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
     display: inline-block;
     padding: 0.25rem 0.75rem;
     border-radius: 99px;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     background: var(--bg-elevated);
     border: 1px solid var(--border);
     color: var(--text-secondary);
@@ -758,56 +1098,262 @@ const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
   .tag-be { border-color: rgba(0, 212, 170, 0.4); color: var(--accent-secondary); }
   .tag-db { border-color: rgba(245, 200, 66, 0.4); color: var(--accent-gold); }
 
-  /* Project filter */
-  .filter-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 2rem;
-  }
-  .filter-btn {
+  /* Publications */
+  .publications-list { display: flex; flex-direction: column; gap: 1.5rem; margin-top: 2.5rem; }
+  .pub-card {
     background: var(--bg-elevated);
     border: 1px solid var(--border);
-    color: var(--text-secondary);
-    padding: 0.35rem 1rem;
-    border-radius: 99px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: inherit;
+    border-radius: 14px;
+    padding: 1.75rem;
+    transition: border-color 0.25s, transform 0.25s;
+    position: relative;
+    overflow: hidden;
   }
-  .filter-btn:hover,
-  .filter-btn.active {
-    background: var(--accent-primary);
-    border-color: var(--accent-primary);
+  .pub-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(to bottom, var(--accent-primary), var(--accent-secondary));
+  }
+  .pub-card:hover { border-color: var(--accent-primary); transform: translateY(-2px); }
+  .pub-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .ieee-badge {
+    display: inline-flex;
+    background: #00629B;
     color: white;
+    padding: 0.2rem 0.65rem;
+    border-radius: 5px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
   }
+  .pub-venue { color: var(--accent-secondary); font-size: 0.85rem; font-weight: 600; }
+  .pub-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.4rem; line-height: 1.4; }
+  .pub-authors { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem; }
+  .pub-links { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  .pub-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: var(--accent-primary);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid var(--accent-primary);
+    padding: 0.3rem 0.85rem;
+    border-radius: 7px;
+    transition: all 0.2s;
+  }
+  .pub-link:hover { background: var(--accent-primary); color: white; }
+
+  /* Volunteer */
+  .volunteer-summary { color: var(--text-secondary); font-size: 0.925rem; line-height: 1.7; }
+
+  /* Skills */
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2.5rem;
+  }
+  .skill-group {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .skill-group:hover { border-color: var(--accent-primary); transform: translateY(-2px); }
+  .skill-group h3 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: 0.85rem;
+    font-weight: 700;
+  }
+
+  /* Awards */
+  .awards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-top: 2.5rem;
+  }
+  .award-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    display: flex;
+    gap: 1.25rem;
+    align-items: flex-start;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .award-card:hover { border-color: var(--accent-gold); transform: translateY(-2px); }
+  .award-icon { font-size: 1.75rem; flex-shrink: 0; line-height: 1; }
+  .award-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .award-meta { font-size: 0.8rem; color: var(--accent-secondary); margin-bottom: 0.4rem; font-weight: 600; }
+  .award-summary { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; }
+
+  /* Certifications */
+  .certs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 2.5rem;
+  }
+  .cert-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    transition: border-color 0.2s, transform 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .cert-card:hover { border-color: var(--accent-secondary); transform: translateY(-2px); }
+  .cert-issuer { font-size: 0.72rem; color: var(--accent-secondary); text-transform: uppercase; font-weight: 800; letter-spacing: 0.08em; }
+  .cert-card h3 { font-size: 0.9rem; font-weight: 600; line-height: 1.4; flex: 1; }
+  .cert-footer { display: flex; justify-content: space-between; align-items: center; }
+  .cert-year { font-size: 0.8rem; color: var(--text-secondary); }
+  .cert-link { font-size: 0.8rem; color: var(--accent-primary); text-decoration: none; font-weight: 600; }
+  .cert-link:hover { text-decoration: underline; }
+
+  /* Organizations */
+  .orgs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 2rem;
+    margin-top: 2.5rem;
+  }
+  .org-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .org-card:hover {
+    border-color: var(--accent-primary);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .org-header {
+    display: flex;
+    gap: 1.25rem;
+    align-items: center;
+    margin-bottom: 1.25rem;
+  }
+  .org-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .org-title h3 {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin-bottom: 0.2rem;
+    color: var(--text-primary);
+  }
+  .org-tagline {
+    font-size: 0.875rem;
+    color: var(--accent-secondary);
+    font-weight: 600;
+    margin: 0;
+  }
+  .org-description {
+    color: var(--text-secondary);
+    font-size: 0.925rem;
+    line-height: 1.75;
+    margin-bottom: 1.25rem;
+  }
+  .org-highlights {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .org-highlights li {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+  .org-highlight-dot {
+    color: var(--accent-primary);
+    font-size: 0.65rem;
+    flex-shrink: 0;
+    margin-top: 0.2rem;
+  }
+  .org-links {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .org-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.45rem 1.1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .org-link-github {
+    background: rgba(124, 106, 247, 0.1);
+    color: var(--accent-primary);
+    border: 1px solid var(--accent-primary);
+  }
+  .org-link-github:hover { background: var(--accent-primary); color: white; }
+  .org-link-web {
+    background: rgba(0, 212, 170, 0.1);
+    color: var(--accent-secondary);
+    border: 1px solid var(--accent-secondary);
+  }
+  .org-link-web:hover { background: var(--accent-secondary); color: var(--bg-base); }
 
   /* Projects */
   .projects-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 1.5rem;
+    margin-top: 2.5rem;
   }
   .project-card {
     background: var(--bg-elevated);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
     overflow: hidden;
-    transition: all 0.3s;
-    position: relative;
-  }
-  .project-card.hidden {
-    display: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .project-card:hover {
     border-color: var(--accent-primary);
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    transform: translateY(-5px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.3);
   }
   .project-image {
     width: 100%;
-    aspect-ratio: 2/1;
+    aspect-ratio: 1200 / 630;
     overflow: hidden;
     background: var(--bg-surface);
   }
@@ -815,14 +1361,10 @@ const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s;
+    transition: transform 0.4s ease;
   }
-  .project-card:hover .project-image img {
-    transform: scale(1.04);
-  }
-  .project-content {
-    padding: 1.5rem;
-  }
+  .project-card:hover .project-image img { transform: scale(1.05); }
+  .project-content { padding: 1.5rem; }
   .project-top {
     display: flex;
     justify-content: space-between;
@@ -830,115 +1372,58 @@ const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
     gap: 0.5rem;
     margin-bottom: 0.5rem;
   }
-  .project-content h3 {
-    font-size: 1.05rem;
-    font-weight: 700;
-  }
-  .project-year {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    white-space: nowrap;
-    padding-top: 0.15rem;
-  }
-  .project-content p { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; }
+  .project-content h3 { font-size: 1rem; font-weight: 700; line-height: 1.3; }
+  .project-year { font-size: 0.72rem; color: var(--text-secondary); white-space: nowrap; padding-top: 0.2rem; font-weight: 600; }
+  .project-desc { color: var(--text-secondary); font-size: 0.875rem; line-height: 1.6; }
   .project-links {
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
     margin-top: 1rem;
+    flex-wrap: wrap;
   }
-  .project-links a {
-    color: var(--accent-primary);
+  .project-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.35rem 0.9rem;
+    border-radius: 7px;
     text-decoration: none;
-    font-size: 0.85rem;
-    font-weight: 600;
-    border: 1px solid var(--accent-primary);
-    padding: 0.3rem 0.75rem;
-    border-radius: 6px;
     transition: all 0.2s;
   }
-  .project-links a:hover { background: var(--accent-primary); color: white; }
-
-  /* Publications */
-  .publications-list { display: flex; flex-direction: column; gap: 1.5rem; }
-  .pub-card {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.5rem;
+  .project-link-code {
+    color: var(--accent-primary);
+    border: 1px solid var(--accent-primary);
+    background: rgba(124, 106, 247, 0.05);
   }
-  .ieee-badge {
-    display: inline-block;
-    background: #00629B;
-    color: white;
-    padding: 0.15rem 0.6rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    margin-bottom: 0.75rem;
+  .project-link-code:hover { background: var(--accent-primary); color: white; }
+  .project-link-demo {
+    color: var(--accent-secondary);
+    border: 1px solid var(--accent-secondary);
+    background: rgba(0, 212, 170, 0.05);
   }
-  .pub-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.5rem; }
-  .pub-venue { color: var(--accent-secondary); font-size: 0.9rem; font-weight: 600; }
-  .pub-authors { color: var(--text-secondary); font-size: 0.85rem; margin: 0.25rem 0 0.75rem; }
-  .pub-links { display: flex; gap: 1rem; flex-wrap: wrap; }
-  .pub-links a { color: var(--accent-primary); text-decoration: none; font-size: 0.85rem; font-weight: 600; }
-  .pub-links a:hover { text-decoration: underline; }
-
-  /* Skills */
-  .skills-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
-  }
-  .skill-group {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.25rem;
-  }
-  .skill-group h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 0.75rem; }
-
-  /* Awards */
-  .awards-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
-  }
-  .award-card {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.25rem;
+  .project-link-demo:hover { background: var(--accent-secondary); color: var(--bg-base); }
+  .project-stats {
     display: flex;
     gap: 1rem;
-    align-items: flex-start;
-    transition: border-color 0.2s;
+    margin-top: 0.75rem;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
   }
-  .award-card:hover { border-color: var(--accent-gold); }
-  .award-icon { font-size: 1.5rem; flex-shrink: 0; }
-  .award-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.25rem; }
-  .award-card p { font-size: 0.8rem; color: var(--text-secondary); }
-
-  /* Certifications */
-  .certs-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
+  .repo-lang { display: flex; align-items: center; gap: 0.3rem; }
+  .repo-lang::before { content: '●'; color: var(--accent-primary); font-size: 0.55rem; }
+  .repo-stars { color: var(--accent-gold); }
+  .empty-state {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 3rem;
+    font-size: 0.95rem;
   }
-  .cert-card {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.25rem;
-    transition: border-color 0.2s;
-  }
-  .cert-card:hover { border-color: var(--accent-secondary); }
-  .cert-issuer { display: block; font-size: 0.75rem; color: var(--accent-secondary); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem; }
-  .cert-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; }
-  .cert-year { font-size: 0.8rem; color: var(--text-secondary); }
 
   /* Footer */
   footer {
-    padding: 2.5rem 1.5rem;
+    padding: 3rem 1.5rem;
     border-top: 1px solid var(--border);
     background: var(--bg-surface);
   }
@@ -950,7 +1435,7 @@ const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
     font-size: 0.85rem;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.85rem;
     align-items: center;
   }
   .footer-links {
@@ -962,55 +1447,59 @@ const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
   .footer-links a {
     color: var(--text-secondary);
     text-decoration: none;
+    font-weight: 500;
     transition: color 0.2s;
   }
   .footer-links a:hover { color: var(--accent-primary); }
+  .footer-credit { color: var(--text-secondary); }
+  .footer-location { color: var(--text-secondary); opacity: 0.7; font-size: 0.8rem; }
 
   /* Responsive */
+  @media (max-width: 900px) {
+    .orgs-grid { grid-template-columns: 1fr; }
+  }
   @media (max-width: 768px) {
+    .nav-toggle { display: flex; }
+    .nav-links {
+      display: none;
+      position: fixed;
+      top: 60px;
+      left: 0;
+      right: 0;
+      background: rgba(10, 10, 15, 0.98);
+      padding: 1.5rem;
+      flex-direction: column;
+      gap: 1.25rem;
+      border-bottom: 1px solid var(--border);
+      z-index: 99;
+    }
+    .nav-links.open { display: flex; }
     .hero-inner {
       grid-template-columns: 1fr;
       text-align: center;
     }
     .hero-image {
       order: -1;
-      display: flex;
       justify-content: center;
     }
-    .hero-image img {
-      width: 200px;
-      height: 200px;
-    }
-    .hero-ctas, .hero-social {
-      justify-content: center;
-    }
-    .nav-links {
-      gap: 1rem;
-    }
-    .timeline {
-      padding-left: 1rem;
-    }
-    .timeline-item {
-      padding-left: 1.5rem;
-    }
-    .timeline-dot {
-      left: -1.45rem;
-    }
+    .hero-image img { width: 200px; height: 200px; }
+    .hero-image-ring { width: 230px; height: 230px; }
+    .hero-ctas, .hero-social { justify-content: center; }
+    .timeline { padding-left: 1rem; }
+    .timeline-item { padding-left: 1.5rem; }
+    .timeline-dot { left: -1.45rem; }
+    .section { padding: 4rem 0; }
+    .section-heading { flex-wrap: wrap; }
+    .section-heading::after { display: none; }
   }
-
   @media (max-width: 480px) {
-    .nav-links a {
-      font-size: 0.8rem;
-    }
-    .nav-links {
-      gap: 0.75rem;
-    }
+    .projects-grid { grid-template-columns: 1fr; }
+    .nav-links a { font-size: 1rem; }
   }
 </style>
 
-<script>
+<script define:vars={{ roles }}>
   // Typewriter effect
-  const roles = ['Software Engineer', 'Computer Vision Researcher', 'Open Source Builder', 'ML Engineer', 'Full-Stack Developer'];
   let roleIndex = 0;
   let charIndex = 0;
   let isDeleting = false;
@@ -1028,75 +1517,99 @@ const sortedProjects = projects.sort((a, b) => b.data.year - a.data.year);
     }
     if (!isDeleting && charIndex === current.length) {
       isDeleting = true;
-      setTimeout(type, 1800);
+      setTimeout(type, 2000);
       return;
     }
     if (isDeleting && charIndex === 0) {
       isDeleting = false;
       roleIndex = (roleIndex + 1) % roles.length;
     }
-    setTimeout(type, isDeleting ? 50 : 100);
+    setTimeout(type, isDeleting ? 45 : 90);
   }
   type();
 
-  // Animated counters
-  function animateCounter(el: Element) {
-    const target = parseFloat(el.getAttribute('data-target') ?? '0');
-    const suffix = el.getAttribute('data-suffix') ?? '';
-    const prefix = el.getAttribute('data-prefix') ?? '';
-    const duration = 1500;
-    const start = performance.now();
-    const isDecimal = target % 1 !== 0;
-
-    function update(now: number) {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const current = target * eased;
-      el.textContent = prefix + (isDecimal ? current.toFixed(2) : Math.round(current).toString()) + suffix;
-      if (progress < 1) requestAnimationFrame(update);
-    }
-    requestAnimationFrame(update);
-  }
-
-  // Project filter
-  const filterButtons = document.querySelectorAll('.filter-btn');
-  const projectCards = document.querySelectorAll('.project-card');
-
-  filterButtons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      filterButtons.forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      const filter = btn.getAttribute('data-filter');
-      projectCards.forEach((card) => {
-        if (filter === 'all' || card.getAttribute('data-category') === filter) {
-          card.classList.remove('hidden');
-        } else {
-          card.classList.add('hidden');
-        }
-      });
+  // Mobile nav toggle
+  const navToggle = document.getElementById('nav-toggle');
+  const navLinks = document.getElementById('nav-links');
+  navToggle?.addEventListener('click', () => {
+    const open = navLinks?.classList.toggle('open');
+    navToggle.setAttribute('aria-expanded', String(open));
+  });
+  // Close nav on link click
+  navLinks?.querySelectorAll('a').forEach((a) => {
+    a.addEventListener('click', () => {
+      navLinks.classList.remove('open');
+      navToggle?.setAttribute('aria-expanded', 'false');
     });
   });
 
-  // Intersection Observer for counters and timeline
+  // Nav scroll effect
+  const nav = document.querySelector('.nav');
+  window.addEventListener('scroll', () => {
+    nav?.classList.toggle('scrolled', window.scrollY > 50);
+  }, { passive: true });
+
+  // Intersection Observer for timeline animations
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          const target = entry.target;
-          if (target.classList.contains('stat-value')) {
-            animateCounter(target);
-            observer.unobserve(target);
-          }
-          if (target.classList.contains('timeline-item')) {
-            target.classList.add('visible');
-          }
+          entry.target.classList.add('visible');
         }
       });
     },
-    { threshold: 0.2 }
+    { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
   );
+  document.querySelectorAll('.timeline-item').forEach((item) => observer.observe(item));
 
-  document.querySelectorAll('.stat-value').forEach((el) => observer.observe(el));
-  document.querySelectorAll('.timeline-item').forEach((el) => observer.observe(el));
+  // Subtle particle animation in hero background
+  (function initParticles() {
+    const container = document.getElementById('hero-particles');
+    if (!container) return;
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;';
+    container.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const particleCount = isMobile ? 20 : 50;
+    const particles = Array.from({ length: particleCount }, () => ({
+      x: Math.random(),
+      y: Math.random(),
+      vx: (Math.random() - 0.5) * 0.00025,
+      vy: (Math.random() - 0.5) * 0.00025,
+      r: Math.random() * 1.5 + 0.5,
+      opacity: Math.random() * 0.35 + 0.05,
+    }));
+
+    let animFrame;
+    function draw() {
+      canvas.width = container.offsetWidth;
+      canvas.height = container.offsetHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const p of particles) {
+        p.x = (p.x + p.vx + 1) % 1;
+        p.y = (p.y + p.vy + 1) % 1;
+        ctx.beginPath();
+        ctx.arc(p.x * canvas.width, p.y * canvas.height, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(124,106,247,${p.opacity})`;
+        ctx.fill();
+      }
+      animFrame = requestAnimationFrame(draw);
+    }
+    draw();
+    // Pause when not visible for performance
+    const heroObs = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) {
+          cancelAnimationFrame(animFrame);
+        } else {
+          draw();
+        }
+      }
+    });
+    const heroSection = container.closest('.hero');
+    if (heroSection) heroObs.observe(heroSection);
+  })();
 </script>
