@@ -1,10 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   fetchGitHubRepos,
-  fetchGitHubProfile,
   fetchGitHubReposEnriched,
   fetchGitHubOrg,
-  getSocialPreviewUrl,
+  fetchSocialPreviewUrls,
   getGitHubPagesUrl,
 } from '../../src/lib/github';
 
@@ -79,75 +78,6 @@ describe('fetchGitHubRepos', () => {
   });
 });
 
-describe('fetchGitHubProfile', () => {
-  beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn());
-  });
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    delete process.env['GITHUB_TOKEN'];
-  });
-
-  it('returns profile data', async () => {
-    const mockProfile = { public_repos: 25, followers: 100, avatar_url: 'https://github.com/jsurrea.png' };
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockProfile,
-    } as Response);
-    const result = await fetchGitHubProfile();
-    expect(result.public_repos).toBe(25);
-    expect(result.followers).toBe(100);
-  });
-
-  it('throws on API error', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: false,
-      status: 404,
-    } as Response);
-    await expect(fetchGitHubProfile()).rejects.toThrow('GitHub API error: 404');
-  });
-
-  it('uses GITHUB_TOKEN when available', async () => {
-    process.env['GITHUB_TOKEN'] = 'my-token';
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ public_repos: 1, followers: 1, avatar_url: '' }),
-    } as Response);
-    await fetchGitHubProfile();
-    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-      expect.stringContaining('jsurrea'),
-      expect.objectContaining({ headers: { Authorization: 'token my-token' } })
-    );
-  });
-
-  it('uses empty headers when no GITHUB_TOKEN', async () => {
-    delete process.env['GITHUB_TOKEN'];
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ public_repos: 1, followers: 1, avatar_url: '' }),
-    } as Response);
-    await fetchGitHubProfile();
-    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({ headers: {} })
-    );
-  });
-});
-
-describe('getSocialPreviewUrl', () => {
-  it('returns the correct opengraph URL', () => {
-    expect(getSocialPreviewUrl('jsurrea', 'my-repo')).toBe(
-      'https://opengraph.githubassets.com/1/jsurrea/my-repo'
-    );
-  });
-
-  it('works with different owners and repos', () => {
-    const url = getSocialPreviewUrl('someorg', 'another-project');
-    expect(url).toContain('someorg');
-    expect(url).toContain('another-project');
-  });
-});
-
 describe('getGitHubPagesUrl', () => {
   it('returns the correct GitHub Pages URL', () => {
     expect(getGitHubPagesUrl('jsurrea', 'my-project')).toBe(
@@ -162,6 +92,88 @@ describe('getGitHubPagesUrl', () => {
   });
 });
 
+describe('fetchSocialPreviewUrls', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn());
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete process.env['GITHUB_TOKEN'];
+  });
+
+  it('returns empty object when no GITHUB_TOKEN', async () => {
+    delete process.env['GITHUB_TOKEN'];
+    const result = await fetchSocialPreviewUrls('jsurrea');
+    expect(result).toEqual({});
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
+
+  it('returns map of repo name to openGraphImageUrl', async () => {
+    process.env['GITHUB_TOKEN'] = 'test-token';
+    const mockResponse = {
+      data: {
+        user: {
+          repositories: {
+            nodes: [
+              { name: 'stellarlib', openGraphImageUrl: 'https://cdn/stellarlib-preview.png' },
+              { name: 'cool-project', openGraphImageUrl: 'https://opengraph.githubassets.com/1/jsurrea/cool-project' },
+            ],
+          },
+        },
+      },
+    };
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockResponse,
+    } as Response);
+    const result = await fetchSocialPreviewUrls('jsurrea');
+    expect(result['stellarlib']).toBe('https://cdn/stellarlib-preview.png');
+    expect(result['cool-project']).toContain('opengraph');
+  });
+
+  it('uses bearer token in Authorization header', async () => {
+    process.env['GITHUB_TOKEN'] = 'my-token';
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: { user: { repositories: { nodes: [] } } } }),
+    } as Response);
+    await fetchSocialPreviewUrls('jsurrea');
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      'https://api.github.com/graphql',
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'bearer my-token' }),
+      })
+    );
+  });
+
+  it('returns empty object on non-ok response', async () => {
+    process.env['GITHUB_TOKEN'] = 'test-token';
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+    } as Response);
+    const result = await fetchSocialPreviewUrls('jsurrea');
+    expect(result).toEqual({});
+  });
+
+  it('returns empty object on network error', async () => {
+    process.env['GITHUB_TOKEN'] = 'test-token';
+    vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'));
+    const result = await fetchSocialPreviewUrls('jsurrea');
+    expect(result).toEqual({});
+  });
+
+  it('handles missing nodes gracefully', async () => {
+    process.env['GITHUB_TOKEN'] = 'test-token';
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: null }),
+    } as Response);
+    const result = await fetchSocialPreviewUrls('jsurrea');
+    expect(result).toEqual({});
+  });
+});
+
 describe('fetchGitHubReposEnriched', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
@@ -171,7 +183,49 @@ describe('fetchGitHubReposEnriched', () => {
     delete process.env['GITHUB_TOKEN'];
   });
 
-  it('enriches repos with socialPreviewUrl and pagesUrl', async () => {
+  it('uses GraphQL social preview URL when token is available', async () => {
+    process.env['GITHUB_TOKEN'] = 'test-token';
+    const mockRepos = [
+      {
+        id: 1,
+        name: 'stellarlib',
+        full_name: 'jsurrea/stellarlib',
+        description: 'A project',
+        html_url: 'https://github.com/jsurrea/stellarlib',
+        homepage: null,
+        stargazers_count: 5,
+        forks_count: 1,
+        language: 'TypeScript',
+        topics: ['web'],
+        updated_at: '2024-01-01',
+        fork: false,
+        owner: { login: 'jsurrea', avatar_url: '' },
+      },
+    ];
+    const mockGraphQL = {
+      data: {
+        user: {
+          repositories: {
+            nodes: [
+              { name: 'stellarlib', openGraphImageUrl: 'https://cdn/custom-preview.png' },
+            ],
+          },
+        },
+      },
+    };
+    vi.mocked(fetch)
+      .mockResolvedValueOnce({ ok: true, json: async () => mockRepos } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => mockGraphQL } as Response);
+
+    const result = await fetchGitHubReposEnriched();
+    expect(result).toHaveLength(1);
+    expect(result[0]?.socialPreviewUrl).toBe('https://cdn/custom-preview.png');
+    expect(result[0]?.pagesUrl).toContain('jsurrea.github.io');
+    expect(result[0]?.pagesUrl).toContain('stellarlib');
+  });
+
+  it('falls back to opengraph URL when no token', async () => {
+    delete process.env['GITHUB_TOKEN'];
     const mockRepos = [
       {
         id: 1,
@@ -189,15 +243,12 @@ describe('fetchGitHubReposEnriched', () => {
         owner: { login: 'jsurrea', avatar_url: '' },
       },
     ];
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockRepos,
-    } as Response);
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => mockRepos } as Response);
+
     const result = await fetchGitHubReposEnriched();
     expect(result).toHaveLength(1);
+    expect(result[0]?.socialPreviewUrl).toContain('opengraph.githubassets.com');
     expect(result[0]?.socialPreviewUrl).toContain('cool-project');
-    expect(result[0]?.pagesUrl).toContain('cool-project');
-    expect(result[0]?.pagesUrl).toContain('jsurrea.github.io');
   });
 });
 

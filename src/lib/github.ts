@@ -1,4 +1,4 @@
-const GITHUB_USER = 'jsurrea';
+import { GITHUB_USER } from '../config';
 
 export interface GitHubRepo {
   id: number;
@@ -24,12 +24,6 @@ export interface GitHubRepoEnriched extends GitHubRepo {
   pagesUrl: string;
 }
 
-export interface GitHubProfile {
-  public_repos: number;
-  followers: number;
-  avatar_url: string;
-}
-
 export interface GitHubOrg {
   login: string;
   description: string | null;
@@ -44,12 +38,70 @@ function getHeaders(): HeadersInit {
     : {};
 }
 
-export function getSocialPreviewUrl(owner: string, repo: string): string {
-  return `https://opengraph.githubassets.com/1/${owner}/${repo}`;
-}
-
 export function getGitHubPagesUrl(owner: string, repo: string): string {
   return `https://${owner.toLowerCase()}.github.io/${repo}/`;
+}
+
+/**
+ * Fetches the actual social-preview image URLs for a user's repositories
+ * using the GitHub GraphQL API (`openGraphImageUrl` field).
+ *
+ * Unlike the opengraph.githubassets.com endpoint (which always generates a
+ * generic image), `openGraphImageUrl` returns the *custom* social-preview
+ * image when one has been set on the repository settings page.
+ *
+ * Requires a GITHUB_TOKEN with at least `metadata:read` permission.
+ * Returns an empty object when no token is available so callers can fall
+ * back gracefully.
+ */
+export async function fetchSocialPreviewUrls(
+  owner: string
+): Promise<Record<string, string>> {
+  const token = process.env['GITHUB_TOKEN'];
+  if (!token) return {};
+
+  const query = `
+    query GetSocialPreviews($owner: String!) {
+      user(login: $owner) {
+        repositories(first: 100) {
+          nodes {
+            name
+            openGraphImageUrl
+          }
+        }
+      }
+    }
+  `;
+
+  let res: Response;
+  try {
+    res = await fetch('https://api.github.com/graphql', {
+      method: 'POST',
+      headers: {
+        Authorization: `bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query, variables: { owner } }),
+    });
+  } catch {
+    return {};
+  }
+
+  if (!res.ok) return {};
+
+  interface GraphQLResponse {
+    data?: {
+      user?: {
+        repositories?: {
+          nodes?: { name: string; openGraphImageUrl: string }[];
+        };
+      };
+    };
+  }
+
+  const json = (await res.json()) as GraphQLResponse;
+  const nodes = json?.data?.user?.repositories?.nodes ?? [];
+  return Object.fromEntries(nodes.map((n) => [n.name, n.openGraphImageUrl]));
 }
 
 export async function fetchGitHubRepos(): Promise<GitHubRepo[]> {
@@ -63,20 +115,17 @@ export async function fetchGitHubRepos(): Promise<GitHubRepo[]> {
 }
 
 export async function fetchGitHubReposEnriched(): Promise<GitHubRepoEnriched[]> {
-  const repos = await fetchGitHubRepos();
+  const [repos, previewUrls] = await Promise.all([
+    fetchGitHubRepos(),
+    fetchSocialPreviewUrls(GITHUB_USER),
+  ]);
   return repos.map((r) => ({
     ...r,
-    socialPreviewUrl: getSocialPreviewUrl(GITHUB_USER, r.name),
-    pagesUrl: getGitHubPagesUrl(GITHUB_USER, r.name),
+    socialPreviewUrl:
+      previewUrls[r.name] ??
+      `https://opengraph.githubassets.com/1/${GITHUB_USER}/${r.name}`,
+    pagesUrl: getGitHubPagesUrl(r.owner.login, r.name),
   }));
-}
-
-export async function fetchGitHubProfile(): Promise<GitHubProfile> {
-  const res = await fetch(`https://api.github.com/users/${GITHUB_USER}`, {
-    headers: getHeaders(),
-  });
-  if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
-  return res.json() as Promise<GitHubProfile>;
 }
 
 export async function fetchGitHubOrg(orgLogin: string): Promise<GitHubOrg> {

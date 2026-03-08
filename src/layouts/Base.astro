@@ -1,16 +1,26 @@
 ---
 import '../styles/global.css';
+import { GITHUB_USER } from '../config';
 
 interface Props {
   title?: string;
   description?: string;
   lang?: string;
+  /** Person's full name for the JSON-LD schema (from profile YAML). */
+  personName?: string;
+  /** Primary job title for the JSON-LD schema (from profile YAML). */
+  personJobTitle?: string;
+  /** sameAs URLs for the JSON-LD schema (social profile URLs from the YAML). */
+  sameAs?: string[];
 }
 
 const {
-  title = 'Juan Sebastián Urrea López — Software Engineer',
-  description = 'Colombian software engineer with dual Magna Cum Laude degrees, IEEE researcher, and open-source builder.',
+  title = `${GITHUB_USER} — Software Engineer`,
+  description = 'Software engineer, AI researcher, and open-source builder.',
   lang = 'en',
+  personName = GITHUB_USER,
+  personJobTitle = 'Software Engineer',
+  sameAs = [`https://github.com/${GITHUB_USER}`],
 } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
@@ -19,14 +29,11 @@ const ogImage = new URL('/og/default.png', Astro.site);
 const person = {
   '@context': 'https://schema.org',
   '@type': 'Person',
-  name: 'Juan Sebastián Urrea López',
-  url: 'https://jsurrea.github.io',
-  image: 'https://github.com/jsurrea.png',
-  sameAs: [
-    'https://github.com/jsurrea',
-    'https://www.linkedin.com/in/js-urrea/',
-  ],
-  jobTitle: 'Software Engineer',
+  name: personName,
+  url: `https://${GITHUB_USER}.github.io`,
+  image: `https://github.com/${GITHUB_USER}.png`,
+  sameAs,
+  jobTitle: personJobTitle,
   alumniOf: 'Universidad de los Andes',
   knowsAbout: ['Machine Learning', 'Computer Vision', 'Full-Stack Development', 'Cloud Architecture'],
 };

@@ -1,43 +1,91 @@
-# Astro Starter Kit: Minimal
+# jsurrea.github.io
+
+Personal portfolio and CV site for Juan Sebastián Urrea López, built with [Astro](https://astro.build) and Tailwind CSS. Content is fetched at build time from a public YAML resume ([profile.yaml](https://jsurrea.github.io/CV/profile.yaml)) and enriched with live GitHub data.
+
+## 🚀 Getting started
 
 ```sh
-pnpm create astro@latest -- --template minimal
+# Install dependencies
+pnpm install
+
+# Start local dev server at http://localhost:4321
+pnpm dev
+
+# Build for production (output in ./dist/)
+pnpm build
+
+# Preview the production build locally
+pnpm preview
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## 🧪 Quality checks
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+```sh
+pnpm typecheck        # TypeScript type checking
+pnpm test             # Run unit tests (Vitest)
+pnpm test:coverage    # Run tests with 100 % coverage report
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+## 🔑 GitHub token (optional but recommended)
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+A fine-grained Personal Access Token (PAT) with **read-only** access enables:
+- Higher GitHub API rate limits (unauthenticated calls are limited to 60/hour)
+- Correct **custom social-preview images** for repositories via the GraphQL API (without a token only the auto-generated opengraph image is used)
 
-Any static assets, like images, can be placed in the `public/` directory.
+### Creating the token
 
-## 🧞 Commands
+1. Go to **GitHub → Settings → Developer Settings → Personal Access Tokens → Fine-grained tokens**.
+2. Click **Generate new token**.
+3. Set **Resource owner** to your GitHub user or organisation.
+4. Set **Repository access** to _All repositories_ (or select specific ones).
+5. Under **Repository permissions** grant:
+   - **Contents** → *Read-only*
+   - **Metadata** → *Read-only* (auto-selected)
+6. Under **Account permissions** add nothing extra (org data is public).
+7. Click **Generate token** and copy the value.
 
-All commands are run from the root of the project, from a terminal:
+### Adding the token to GitHub Actions
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `pnpm install`             | Installs dependencies                            |
-| `pnpm dev`             | Starts local dev server at `localhost:4321`      |
-| `pnpm build`           | Build your production site to `./dist/`          |
-| `pnpm preview`         | Preview your build locally, before deploying     |
-| `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `pnpm astro -- --help` | Get help using the Astro CLI                     |
+Go to **Repository → Settings → Secrets and variables → Actions** and create a new secret named `GITHUB_TOKEN` with the token value. The deploy workflow already reads this secret:
 
-## 👀 Want to learn more?
+```yaml
+- run: pnpm build
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+> **Security note:** The token is only accessed by Node.js at _build time_ (inside Astro's server-side frontmatter). It is never written into the generated static files and is therefore never exposed publicly.
+
+## 🗂️ Project structure
+
+```
+src/
+├── config.ts          # All user-specific settings (GITHUB_USER, org lists, etc.)
+├── lib/
+│   ├── github.ts      # GitHub REST + GraphQL API helpers
+│   └── profile.ts     # TypeScript interfaces for the profile YAML schema
+├── layouts/
+│   └── Base.astro     # HTML shell with SEO / Open Graph / JSON-LD
+├── pages/
+│   └── index.astro    # Portfolio page (fetches YAML + GitHub data at build time)
+└── styles/
+    └── global.css     # CSS custom properties and global resets
+tests/
+└── unit/
+    └── github.test.ts # Unit tests for GitHub API helpers (100 % coverage)
+```
+
+## ⚙️ Customisation
+
+All user-specific values live in **`src/config.ts`**:
+
+| Export | Purpose |
+|--------|---------|
+| `GITHUB_USER` | GitHub username — drives API calls and all derived URLs |
+| `PROFILE_URL` | URL of the public YAML resume |
+| `CV_URL` | URL of the online CV/resume page |
+| `ORG_LOGINS` | GitHub org logins to feature in the Open Source section |
+| `HERO_ROLES` | Roles cycled by the hero typewriter animation |
+| `ORG_DESCRIPTIONS` | Rich metadata (tagline, description, highlights) for each org |
+
+CV content (name, work experience, education, skills, etc.) is pulled automatically from the YAML at `PROFILE_URL` and requires no changes here.

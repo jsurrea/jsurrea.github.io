@@ -3,9 +3,9 @@ import BaseLayout from '../layouts/Base.astro';
 import { load as yamlLoad } from 'js-yaml';
 import { fetchGitHubReposEnriched, fetchGitHubOrg } from '../lib/github';
 import type { Profile } from '../lib/profile';
+import { GITHUB_USER, PROFILE_URL, CV_URL, ORG_LOGINS, HERO_ROLES, ORG_DESCRIPTIONS } from '../config';
 
 // Fetch and parse profile YAML at build time
-const PROFILE_URL = 'https://jsurrea.github.io/CV/profile.yaml';
 let profile: Profile;
 try {
   const res = await fetch(PROFILE_URL);
@@ -16,11 +16,11 @@ try {
   console.warn('Failed to fetch profile YAML:', e);
   profile = {
     basics: {
-      name: 'Juan Sebastian Urrea Lopez',
-      label: 'Software Engineer & AI Researcher',
-      email: 'jurrea5518@gmail.com',
+      name: GITHUB_USER,
+      label: 'Software Engineer',
+      email: '',
       phone: '',
-      url: 'https://jsurrea.github.io/',
+      url: `https://${GITHUB_USER}.github.io/`,
       summary: '',
       profiles: [],
     },
@@ -38,7 +38,6 @@ try {
 }
 
 // Fetch GitHub orgs
-const ORG_LOGINS = ['Open-Source-Uniandes', 'AI-Museum'];
 interface OrgData {
   login: string;
   description: string | null;
@@ -71,49 +70,22 @@ function fmtYearMonth(dateStr?: string | null): string {
   return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
-const GITHUB_USER = 'jsurrea';
-const roles = ['Software Engineer', 'AI Researcher', 'Open Source Builder', 'Computer Vision Engineer', 'Full-Stack Developer'];
-
-interface OrgMeta {
-  tagline: string;
-  description: string;
-  highlights: string[];
-}
-
-const orgDescriptions: Record<string, OrgMeta> = {
-  'Open-Source-Uniandes': {
-    tagline: 'Building open technology for the Uniandes community',
-    description: 'A student-led initiative at Universidad de los Andes dedicated to creating open-source tools that solve real problems for the university community. We believe the best solutions emerge from collaboration and listening to the people they serve. Every project is built in public — contributions are welcomed, and new ideas are mentored from concept to production.',
-    highlights: [
-      'Serving 8,000+ students with production-grade open tools',
-      'Student-run, community-first engineering culture',
-      'Open mentorship: from idea to deployed product',
-      'Building a portfolio of impact-driven software',
-    ],
-  },
-  'AI-Museum': {
-    tagline: 'Democratizing AI education through open, visual, interactive learning',
-    description: 'An ambitious initiative to make Artificial Intelligence education accessible to everyone — through open-source materials, rich visualizations, and novel interactive experiences. We are building a comprehensive library of learning resources so that anyone, anywhere, can learn or teach AI without barriers. Our long-term vision is the first physical AI Museum at global scale.',
-    highlights: [
-      'Open-source learning materials for all levels',
-      'Focus on visualizations, interactivity, and experimentation',
-      'Free forever — for learners and educators worldwide',
-      'Vision: the world\'s first physical AI Museum',
-    ],
-  },
-};
+const roles = HERO_ROLES;
 ---
 
 <BaseLayout
   lang="en"
   title={`${basics.name} — ${basics.label}`}
   description={basics.summary}
+  personName={basics.name}
+  personJobTitle={basics.label}
+  sameAs={basics.profiles.map((p) => p.url)}
 >
   <main id="main-content">
     <!-- Navigation -->
     <nav class="nav" aria-label="Main navigation">
       <div class="nav-inner">
-        <a href="/" class="nav-logo">jsurrea</a>
+        <a href="/" class="nav-logo">{GITHUB_USER}</a>
         <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
           <span></span><span></span><span></span>
         </button>
@@ -145,7 +117,7 @@ const orgDescriptions: Record<string, OrgMeta> = {
           <p class="hero-description">{basics.summary}</p>
           <div class="hero-ctas">
             <a href="#projects" class="btn btn-primary">View My Work</a>
-            <a href="https://jsurrea.github.io/CV/" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">
+            <a href={CV_URL} class="btn btn-secondary" target="_blank" rel="noopener noreferrer">
               Download CV
             </a>
           </div>
@@ -167,7 +139,7 @@ const orgDescriptions: Record<string, OrgMeta> = {
         <div class="hero-image">
           <div class="hero-image-ring" aria-hidden="true"></div>
           <img
-            src="https://github.com/jsurrea.png"
+            src={`https://github.com/${GITHUB_USER}.png`}
             alt={basics.name}
             width="300"
             height="300"
@@ -473,7 +445,7 @@ const orgDescriptions: Record<string, OrgMeta> = {
         </p>
         <div class="orgs-grid">
           {orgs.map((org) => {
-            const meta = orgDescriptions[org.login];
+            const meta = ORG_DESCRIPTIONS[org.login];
             return (
               <article class="org-card">
                 <div class="org-header">
